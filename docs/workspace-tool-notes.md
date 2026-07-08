@@ -1,8 +1,6 @@
 # Workspace Tool Notes
 
-The planned Workspace Launcher tool is a workspace-layout utility for starting a
-repeatable RoboFont session. It should begin as a small script and only become an
-extension after the workflow is proven.
+The planned Workspace Launcher tool is a workspace-layout utility for starting a repeatable RoboFont session. It should begin as a small script and only become an extension after the workflow is proven.
 
 ## Planned Behavior
 
@@ -23,12 +21,8 @@ extension after the workflow is proven.
 
 ## Risks / Unknowns
 
-- RoboFont window APIs and AppKit behavior may vary by RoboFont and macOS
-  version.
+- RoboFont window APIs and AppKit behavior may vary by RoboFont and macOS version.
 - xTools windows may not expose stable public entry points.
-- Title-based window matching can fail when document names, localization, or
-  window titles change.
-- Layout coordinates may not transfer between displays, scaling settings, or
-  monitor arrangements.
-- Opening many files and panels at once may need ordering, delays, or readiness
-  checks.
+- Title-based window matching can fail when document names, localization, or window titles change.
+- Layout coordinates may not transfer between displays, scaling settings, or monitor arrangements.
+- Opening many files and panels at once may need ordering, delays, or readiness checks.

@@ -1,8 +1,6 @@
 # Extension Structure Notes
 
-This repository is intended to stay simple while tools are being explored. Stable
-scripts may later be promoted into `.roboFontExt` packages, but no extension
-package should be created until there is a concrete tool worth packaging.
+This repository is intended to stay simple while tools are being explored. Stable scripts may later be promoted into `.roboFontExt` packages, but no extension package should be created until there is a concrete tool worth packaging.
 
 ## Intended Repository Structure
 

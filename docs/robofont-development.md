@@ -1,10 +1,6 @@
 # RoboFont Development Notes
 
-This repository should prefer official RoboFont APIs and documented extension
-patterns wherever possible. Scripts can use supporting libraries such as
-FontParts, Vanilla, and Defcon when they match the task, but RoboFont behavior
-should be verified against RoboFont documentation or local source before it is
-treated as stable.
+This repository should prefer official RoboFont APIs and documented extension patterns wherever possible. Scripts can use supporting libraries such as FontParts, Vanilla, and Defcon when they match the task, but RoboFont behavior should be verified against RoboFont documentation or local source before it is treated as stable.
 
 ## Reference Links
 
