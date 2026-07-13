@@ -8,17 +8,47 @@ from pathlib import Path
 
 from .geometry import master_contours_to_union
 from .model import (
+    CubicSegment,
     ComplexityProfile,
     Fragment,
     GenerationResult,
     MasterContour,
     MasterGlyph,
+    LineSegment,
     NormalizationDiagnostics,
+    master_contour_segments,
 )
 from .validation import validate_pair
 
 TOPOLOGY_FORMAT = "com.fracturize.topology"
-TOPOLOGY_FORMAT_VERSION = 2
+TOPOLOGY_FORMAT_VERSION = 3
+
+
+def _segment_to_dict(segment):
+    if isinstance(segment, CubicSegment):
+        return {
+            "type": "curve",
+            "start": list(segment.start),
+            "control1": list(segment.control1),
+            "control2": list(segment.control2),
+            "end": list(segment.end),
+        }
+    return {"type": "line", "start": list(segment.start), "end": list(segment.end)}
+
+
+def _segment_from_dict(data):
+    start = tuple(map(float, data["start"]))
+    end = tuple(map(float, data["end"]))
+    if data["type"] == "curve":
+        return CubicSegment(
+            start,
+            tuple(map(float, data["control1"])),
+            tuple(map(float, data["control2"])),
+            end,
+        )
+    if data["type"] == "line":
+        return LineSegment(start, end)
+    raise ValueError(f"unsupported stored segment type: {data['type']!r}")
 
 
 def _contour_to_dict(contour: MasterContour) -> dict:
@@ -29,10 +59,14 @@ def _contour_to_dict(contour: MasterContour) -> dict:
         "isHole": contour.is_hole,
         "points": [list(point) for point in contour.points],
         "pointIDs": list(contour.point_ids),
+        "segments": [
+            _segment_to_dict(segment) for segment in master_contour_segments(contour)
+        ],
     }
 
 
 def _contour_from_dict(data: dict) -> MasterContour:
+    segments = tuple(_segment_from_dict(item) for item in data.get("segments", ()))
     return MasterContour(
         identifier=data["identifier"],
         fragment_id=data["fragmentID"],
@@ -40,6 +74,7 @@ def _contour_from_dict(data: dict) -> MasterContour:
         is_hole=bool(data["isHole"]),
         points=tuple((float(x), float(y)) for x, y in data["points"]),
         point_ids=tuple(data["pointIDs"]),
+        segments=segments,
     )
 
 
@@ -54,6 +89,7 @@ def topology_to_dict(result: GenerationResult, *, units_per_em: float) -> dict:
         "effectiveSeed": result.effective_seed,
         "flatteningTolerance": result.flattening_tolerance,
         "rockEdgeDetail": result.rock_edge_detail,
+        "outlineReconstructionVersion": result.outline_reconstruction_version,
         "profile": asdict(result.profile),
         "normalization": asdict(result.normalization),
         "fragments": [
@@ -75,7 +111,7 @@ def topology_to_dict(result: GenerationResult, *, units_per_em: float) -> dict:
 
 def topology_from_dict(data: dict) -> tuple[GenerationResult, float]:
     format_version = data.get("formatVersion")
-    if data.get("format") != TOPOLOGY_FORMAT or format_version not in {1, 2}:
+    if data.get("format") != TOPOLOGY_FORMAT or format_version not in {1, 2, 3}:
         raise ValueError("unsupported topology format")
     profile_data = data["profile"]
     profile = ComplexityProfile(**profile_data)
@@ -133,6 +169,9 @@ def topology_from_dict(data: dict) -> tuple[GenerationResult, float]:
         eroded=intact,
         validation=validation,
         notes=tuple(data.get("notes", ())),
+        outline_reconstruction_version=data.get(
+            "outlineReconstructionVersion", "polygonal-v1"
+        ),
     )
     return result, units_per_em
 

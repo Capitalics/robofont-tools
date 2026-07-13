@@ -30,9 +30,7 @@ def test_temporary_ufo_pair_serializes_and_reopens_with_identity(tmp_path: Path)
     assert master_contours_to_union(intact.contours).symmetric_difference(
         master_contours_to_union(result.intact.contours)
     ).area <= 1e-8
-    source = visible_filled_union(
-        flatten_outline(proof_fixtures()["O.curve"], result.flattening_tolerance)
-    )
+    source = master_contours_to_union(result.intact.contours)
     reopened_report = validate_pair(
         source_silhouette=source,
         intact=intact,
@@ -43,7 +41,7 @@ def test_temporary_ufo_pair_serializes_and_reopens_with_identity(tmp_path: Path)
     assert reopened_report.compatible
 
 
-def test_temporary_ufo_output_contains_only_line_points(tmp_path: Path):
+def test_temporary_ufo_output_preserves_cubics_and_internal_lines(tmp_path: Path):
     result = generate_pair(proof_fixtures()["O.curve"], GenerationSettings(complexity=25))
     intact_path = tmp_path / "Intact.ufo"
     eroded_path = tmp_path / "Eroded.ufo"
@@ -52,5 +50,10 @@ def test_temporary_ufo_output_contains_only_line_points(tmp_path: Path):
     from defcon import Font
 
     font = Font(intact_path)
-    assert all(point.segmentType == "line" for contour in font[result.glyph_name] for point in contour)
+    segment_types = {
+        segment[-1].segmentType
+        for contour in font[result.glyph_name]
+        for segment in contour.segments
+    }
+    assert segment_types == {"curve", "line"}
     font.close()

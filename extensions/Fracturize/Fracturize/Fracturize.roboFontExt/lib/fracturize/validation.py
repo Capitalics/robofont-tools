@@ -3,7 +3,12 @@ from __future__ import annotations
 from shapely import set_precision
 from shapely.geometry import LinearRing
 
-from .geometry import interpolate_contours, master_contours_to_union, signed_area
+from .geometry import (
+    flatten_master_contour,
+    interpolate_contours,
+    master_contours_to_union,
+    signed_area,
+)
 from .model import (
     MasterGlyph,
     ReconstructionMetrics,
@@ -35,7 +40,9 @@ def validate_pair(*, source_silhouette, intact: MasterGlyph, eroded: MasterGlyph
             findings.append(ValidationFinding("hard_error", "point_count", f"point count differs at contour {index}"))
         if first.is_hole != second.is_hole:
             findings.append(ValidationFinding("hard_error", "winding_role", f"hole role differs at contour {index}"))
-        if signed_area(first.points) * signed_area(second.points) <= 0:
+        first_ring = flatten_master_contour(first, units_per_em * 1e-5)
+        second_ring = flatten_master_contour(second, units_per_em * 1e-5)
+        if signed_area(first_ring) * signed_area(second_ring) <= 0:
             findings.append(ValidationFinding("hard_error", "winding", f"winding changed at contour {index}"))
 
     intact_union = master_contours_to_union(intact.contours)
@@ -76,7 +83,8 @@ def validate_pair(*, source_silhouette, intact: MasterGlyph, eroded: MasterGlyph
     for position in SAMPLED_POSITIONS:
         contours = interpolate_contours(intact.contours, eroded.contours, position / 100.0)
         for index, contour in enumerate(contours):
-            area = abs(signed_area(contour.points))
+            ring_points = flatten_master_contour(contour, units_per_em * 1e-5)
+            area = abs(signed_area(ring_points))
             if area <= area_floor:
                 findings.append(
                     ValidationFinding(
@@ -85,7 +93,7 @@ def validate_pair(*, source_silhouette, intact: MasterGlyph, eroded: MasterGlyph
                         f"contour {index} has area {area:.3g} at {position}%",
                     )
                 )
-            ring = LinearRing(list(contour.points) + [contour.points[0]])
+            ring = LinearRing(list(ring_points) + [ring_points[0]])
             if not ring.is_simple:
                 findings.append(
                     ValidationFinding(

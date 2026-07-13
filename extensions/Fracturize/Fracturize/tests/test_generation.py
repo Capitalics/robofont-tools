@@ -31,7 +31,10 @@ from fracturize.model import MasterContour, MasterGlyph
 from fracturize.validation import validate_pair
 
 
-@pytest.mark.parametrize("glyph_name", tuple(proof_fixtures()))
+@pytest.mark.parametrize(
+    "glyph_name",
+    tuple(name for name in proof_fixtures() if name != "H.overlap"),
+)
 def test_supported_fixtures_reconstruct_and_are_compatible(glyph_name):
     result = generate_pair(proof_fixtures()[glyph_name], GenerationSettings(complexity=50))
     assert result.validation.compatible
@@ -66,7 +69,7 @@ def test_different_glyph_names_produce_distinct_topology_seeds():
 
 
 def test_fragment_and_point_identity_is_matched_without_transformed_sorting():
-    result = generate_pair(proof_fixtures()["H.overlap"], GenerationSettings(complexity=75))
+    result = generate_pair(proof_fixtures()["O.curve"], GenerationSettings(complexity=75))
     assert [contour.identifier for contour in result.intact.contours] == [
         contour.identifier for contour in result.eroded.contours
     ]
@@ -95,7 +98,7 @@ def test_architectural_motion_keeps_a_core_and_bounds_downward_baseline_crossing
         maximum_downward_drift_em=0.02,
         maximum_baseline_crossing_fraction=0.12,
     )
-    result = generate_pair(proof_fixtures()["H.overlap"], settings)
+    result = generate_pair(proof_fixtures()["O.counter"], settings)
     largest = max(result.fragments, key=lambda fragment: fragment.area)
     smaller = [fragment for fragment in result.fragments if fragment is not largest]
     assert math.hypot(*largest.translation) < max(
@@ -117,6 +120,11 @@ def test_architectural_motion_keeps_a_core_and_bounds_downward_baseline_crossing
         len(result.fragments) * settings.maximum_baseline_crossing_fraction
     )
     assert result.validation.compatible
+
+
+def test_overlapping_source_contours_are_rejected_without_polygonal_fallback():
+    with pytest.raises(UnsupportedOutlineError, match="overlapping"):
+        generate_pair(proof_fixtures()["H.overlap"], GenerationSettings())
 
 
 def test_fragment_size_multipliers_change_motion_without_changing_topology():

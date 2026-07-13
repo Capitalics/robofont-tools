@@ -14,6 +14,7 @@ from .model import (
     MasterContour,
     NormalizationDiagnostics,
     Point as XY,
+    master_contour_segments,
 )
 
 MAX_CROSS_TOLERANCE_NORMALIZED_DIFFERENCE = 0.002
@@ -358,8 +359,29 @@ def geometry_to_canonical_rings(geometry) -> tuple[tuple[bool, tuple[XY, ...]], 
     return tuple(result)
 
 
-def master_contours_to_union(contours: Sequence[MasterContour]):
-    return visible_filled_union([contour.points for contour in contours])
+def flatten_master_contour(contour: MasterContour, tolerance: float):
+    points = []
+    for segment in master_contour_segments(contour):
+        if isinstance(segment, CubicSegment):
+            flattened = flatten_cubic(
+                segment.start,
+                segment.control1,
+                segment.control2,
+                segment.end,
+                tolerance,
+            )
+        else:
+            flattened = [segment.start, segment.end]
+        points.extend(flattened if not points else flattened[1:])
+    if points and points[-1] == points[0]:
+        points.pop()
+    return tuple(points)
+
+
+def master_contours_to_union(contours: Sequence[MasterContour], *, tolerance=0.01):
+    return visible_filled_union(
+        [flatten_master_contour(contour, tolerance) for contour in contours]
+    )
 
 
 def interpolate_contours(
@@ -367,21 +389,45 @@ def interpolate_contours(
 ) -> tuple[MasterContour, ...]:
     result = []
     for first, second in zip(intact, eroded, strict=True):
-        points = tuple(
-            (
+        def interpolate_point(a, b):
+            return (
                 a[0] + (b[0] - a[0]) * factor,
                 a[1] + (b[1] - a[1]) * factor,
             )
-            for a, b in zip(first.points, second.points, strict=True)
-        )
+
+        segments = []
+        for first_segment, second_segment in zip(
+            master_contour_segments(first),
+            master_contour_segments(second),
+            strict=True,
+        ):
+            if type(first_segment) is not type(second_segment):
+                raise ValueError("master segment types differ")
+            if isinstance(first_segment, CubicSegment):
+                segments.append(
+                    CubicSegment(
+                        interpolate_point(first_segment.start, second_segment.start),
+                        interpolate_point(first_segment.control1, second_segment.control1),
+                        interpolate_point(first_segment.control2, second_segment.control2),
+                        interpolate_point(first_segment.end, second_segment.end),
+                    )
+                )
+            else:
+                segments.append(
+                    LineSegment(
+                        interpolate_point(first_segment.start, second_segment.start),
+                        interpolate_point(first_segment.end, second_segment.end),
+                    )
+                )
         result.append(
             MasterContour(
                 identifier=first.identifier,
                 fragment_id=first.fragment_id,
                 part_index=first.part_index,
                 is_hole=first.is_hole,
-                points=points,
+                points=tuple(segment.end for segment in segments),
                 point_ids=first.point_ids,
+                segments=tuple(segments),
             )
         )
     return tuple(result)

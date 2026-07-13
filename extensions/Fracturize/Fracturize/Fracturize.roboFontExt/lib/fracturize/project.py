@@ -20,6 +20,7 @@ from .core import (
     EDGE_PROFILE_VERSION,
     MOTION_ALGORITHM_V1,
     MOTION_ALGORITHM_VERSION,
+    OUTLINE_RECONSTRUCTION_VERSION,
     RECURSIVE_TOPOLOGY_VERSION,
     SEED_DERIVATION_VERSION,
     TOPOLOGY_VERSION,
@@ -585,6 +586,8 @@ class FractureProject:
         else:
             if source_fingerprint(outline) != record["sourceFingerprint"]:
                 status = "stale"
+            elif record.get("outlineReconstructionVersion", "polygonal-v1") != OUTLINE_RECONSTRUCTION_VERSION:
+                status = "topology-outdated"
             elif record["topologyComplexity"] != self.settings.complexity:
                 status = "topology-outdated"
             elif record.get(
@@ -699,6 +702,10 @@ class FractureProject:
         record = self.data["processedGlyphs"].get(glyph_name)
         if record is None:
             raise ProjectError(f"glyph is not processed: {glyph_name}")
+        if record.get("outlineReconstructionVersion", "polygonal-v1") != OUTLINE_RECONSTRUCTION_VERSION:
+            raise ProjectError(
+                f"{glyph_name} uses legacy polygonal exterior topology; explicit topology regeneration is required"
+            )
         self._require_unedited_output(glyph_name)
         outline = self._load_source_outline(glyph_name)
         fingerprint = source_fingerprint(outline)
@@ -772,6 +779,7 @@ class FractureProject:
                     "topologyDigest": topology_hash,
                     "topologyComplexity": result.profile.value,
                     "topologyRockEdgeDetail": result.rock_edge_detail,
+                    "outlineReconstructionVersion": result.outline_reconstruction_version,
                     "pairRevision": pair_revision,
                     "contentDigests": content_digests,
                     "motionAlgorithmVersion": self.data["motionPolicy"]["algorithmVersion"],

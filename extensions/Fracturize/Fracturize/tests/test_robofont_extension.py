@@ -278,11 +278,11 @@ def test_batch_summary_separates_completed_skipped_rejected_and_failed(live_cont
     controller.process_names(["O"], action="generate")
 
     result = controller.process_names(
-        ["O", "i", "missingGlyph", "H"],
+        ["O", "i", "missingGlyph", "I"],
         action="generate",
     )
 
-    assert result["completed"] == ["H"]
+    assert result["completed"] == ["I"]
     assert result["skipped"] == [
         ("O", "already processed"),
         ("i", "component preserved"),
@@ -302,15 +302,15 @@ def test_cooperative_batch_cancellation_stops_after_completed_glyph(live_control
             controller.request_cancel()
 
     result = controller.process_names(
-        ["O", "H", "A"],
+        ["O", "I", "A"],
         action="generate",
         item_complete=item_complete,
     )
 
-    assert result["completed"] == ["O", "H"]
+    assert result["completed"] == ["O", "I"]
     assert result["cancelled"] is True
     assert project.glyph_status("A") == "unprocessed"
-    assert updates == [(1, "O", 1), (2, "H", 2)]
+    assert updates == [(1, "O", 1), (2, "I", 2)]
 
 
 def test_batch_progress_reports_each_glyph_and_running_totals(live_controller):
@@ -319,7 +319,7 @@ def test_batch_progress_reports_each_glyph_and_running_totals(live_controller):
     completions = []
 
     result = controller.process_names(
-        ["O", "missingGlyph", "H"],
+        ["O", "missingGlyph", "I"],
         action="generate",
         progress=lambda index, total, name: starts.append((index + 1, total, name)),
         item_complete=lambda position, total, name, summary: completions.append(
@@ -335,13 +335,13 @@ def test_batch_progress_reports_each_glyph_and_running_totals(live_controller):
         ),
     )
 
-    assert starts == [(1, 3, "O"), (2, 3, "missingGlyph"), (3, 3, "H")]
+    assert starts == [(1, 3, "O"), (2, 3, "missingGlyph"), (3, 3, "I")]
     assert completions == [
         (1, 3, "O", 1, 0, 0, 0),
         (2, 3, "missingGlyph", 1, 0, 0, 1),
-        (3, 3, "H", 2, 0, 0, 1),
+        (3, 3, "I", 2, 0, 0, 1),
     ]
-    assert result["completed"] == ["O", "H"]
+    assert result["completed"] == ["O", "I"]
 
 
 def test_batch_ui_has_all_mode_progress_cancel_and_button_locking():
@@ -598,9 +598,9 @@ def test_batch_generation_uses_saved_rock_edge_detail(live_controller):
     controller, project, environment = live_controller
     controller.set_rock_edge_detail_from_slider(25)
 
-    result = controller.process_names(["O", "H"], action="generate")
+    result = controller.process_names(["O", "I"], action="generate")
 
-    assert result["completed"] == ["O", "H"]
+    assert result["completed"] == ["O", "I"]
     assert all(
         project.data["processedGlyphs"][name]["topologyRockEdgeDetail"] == 25
         for name in result["completed"]
@@ -809,8 +809,8 @@ def test_hard_validation_failure_blocks_both_live_writes(live_controller):
 
 def test_sequential_batch_preserves_success_and_reports_later_failure(live_controller):
     controller, project, environment = live_controller
-    result = controller.process_names(["O", "missingGlyph", "H"], action="generate")
-    assert result["completed"] == ["O", "H"]
+    result = controller.process_names(["O", "missingGlyph", "I"], action="generate")
+    assert result["completed"] == ["O", "I"]
     assert result["failed"][0][0] == "missingGlyph"
     assert project.glyph_status("missingGlyph") == "failed"
     assert project.glyph_status("O") == "processed"
@@ -821,11 +821,11 @@ def test_later_glyph_additions_reuse_the_same_open_pair(live_controller):
     intact = project.intact_font
     eroded = project.eroded_font
     controller.process_names(["O"], action="generate")
-    controller.process_names(["H"], action="generate")
+    controller.process_names(["I"], action="generate")
     assert project.intact_font is intact
     assert project.eroded_font is eroded
-    assert set(project.data["processedGlyphs"]) == {"O", "H"}
-    assert project.glyph_status("O") == project.glyph_status("H") == "processed"
+    assert set(project.data["processedGlyphs"]) == {"O", "I"}
+    assert project.glyph_status("O") == project.glyph_status("I") == "processed"
 
 
 def test_source_change_is_reported_as_stale_without_overwriting(live_controller):
@@ -846,10 +846,10 @@ def test_batch_cancellation_is_checked_between_glyphs(live_controller):
         if index == 0:
             controller.request_cancel()
 
-    result = controller.process_names(["O", "H"], action="generate", progress=progress)
+    result = controller.process_names(["O", "I"], action="generate", progress=progress)
     assert result["completed"] == ["O"]
     assert result["cancelled"] is True
-    assert project.glyph_status("H") == "unprocessed"
+    assert project.glyph_status("I") == "unprocessed"
 
 
 def test_project_reopen_relinks_same_open_user_fonts(live_controller):
@@ -914,8 +914,8 @@ def test_open_project_invalid_path_raises_and_ui_has_clear_failure_path(live_con
 def test_complete_resolved_batch_reaches_process_names_and_continues_after_failure(live_controller):
     controller, project, environment = live_controller
     environment.current_name = "O"
-    environment.selection = ("missingGlyph", "H")
-    names = controller.selected_names("H")
+    environment.selection = ("missingGlyph", "I")
+    names = controller.selected_names("I")
     progress_names = []
 
     result = controller.process_names(
@@ -924,11 +924,11 @@ def test_complete_resolved_batch_reaches_process_names_and_continues_after_failu
         progress=lambda index, total, name: progress_names.append(name),
     )
 
-    assert names == ("O", "missingGlyph", "H")
+    assert names == ("O", "missingGlyph", "I")
     assert progress_names == list(names)
-    assert result["completed"] == ["O", "H"]
+    assert result["completed"] == ["O", "I"]
     assert result["failed"][0][0] == "missingGlyph"
-    assert project.glyph_status("H") == "processed"
+    assert project.glyph_status("I") == "processed"
 
 
 def test_project_schema_contains_required_live_reproducibility_fields(live_controller):

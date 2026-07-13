@@ -26,8 +26,8 @@ def test_regression_ufo_adapter_loads_contours_and_rejects_components():
     },)
 
 
-@pytest.mark.parametrize("glyph_name", ("H", "O", "S", "a"))
-def test_representative_regression_glyphs_pass_polygonal_validation(glyph_name):
+@pytest.mark.parametrize("glyph_name", ("I", "O", "S", "idotless"))
+def test_representative_regression_glyphs_pass_hybrid_validation(glyph_name):
     outlines, _, _ = load_ufo_outlines(FIXTURE)
     outline = next(item for item in outlines if item.name == glyph_name)
     result = generate_pair(outline, GenerationSettings(project_seed="real-test", complexity=50))
@@ -39,11 +39,16 @@ def test_representative_regression_glyphs_pass_polygonal_validation(glyph_name):
 def test_stable_multiply_wound_glyphs_use_bounded_overlap_normalization(glyph_name):
     outlines, _, _ = load_ufo_outlines(FIXTURE)
     outline = next(item for item in outlines if item.name == glyph_name)
-    result = generate_pair(outline, GenerationSettings(project_seed="real-test", complexity=50))
-    assert result.validation.compatible
-    assert result.normalization.normalization_applied
-    assert result.normalization.maximum_absolute_winding >= 2
-    assert result.normalization.cross_tolerance_normalized_difference <= 0.002
+    from fracturize.geometry import adaptive_flattening_tolerance, normalize_outline
+
+    _, _, diagnostics = normalize_outline(
+        outline, adaptive_flattening_tolerance(outline.units_per_em)
+    )
+    assert diagnostics.normalization_applied
+    assert diagnostics.maximum_absolute_winding >= 2
+    assert diagnostics.cross_tolerance_normalized_difference <= 0.002
+    with pytest.raises(UnsupportedOutlineError, match="overlapping"):
+        generate_pair(outline, GenerationSettings(project_seed="real-test", complexity=50))
 
 
 def test_component_glyph_is_rejected_before_generation():

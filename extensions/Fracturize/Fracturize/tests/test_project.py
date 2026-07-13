@@ -104,14 +104,14 @@ def test_reopen_appends_to_same_pair_and_preserves_previous_glyph(tmp_path):
     reopened = FractureProject.open(project.path)
     assert reopened.intact_path == intact_path
     assert reopened.eroded_path == eroded_path
-    reopened.process_glyph("H")
+    reopened.process_glyph("I")
     assert read_master(intact_path, "O") == original_intact
     assert read_master(eroded_path, "O") == original_eroded
     for path in (intact_path, eroded_path):
         font = Font(path)
-        assert set(font.keys()) == {"O", "H"}
+        assert set(font.keys()) == {"O", "I"}
         font.close()
-    assert set(reopened.data["processedGlyphs"]) == {"O", "H"}
+    assert set(reopened.data["processedGlyphs"]) == {"O", "I"}
     FractureProject.open(project.path)
 
 
@@ -278,12 +278,12 @@ def test_failure_after_first_save_rolls_back_both_sides_and_project_record(tmp_p
             raise OSError("simulated eroded save failure")
 
     with pytest.raises(OSError, match="simulated eroded save failure"):
-        project.process_glyph("H", save_hook=fail_before_eroded)
-    assert "H" not in project.data["processedGlyphs"]
-    assert not project._topology_path("H").exists()
+        project.process_glyph("I", save_hook=fail_before_eroded)
+    assert "I" not in project.data["processedGlyphs"]
+    assert not project._topology_path("I").exists()
     for path in (project.intact_path, project.eroded_path):
         font = Font(path)
-        assert "H" not in font
+        assert "I" not in font
         font.close()
     FractureProject.open(project.path)
 
@@ -371,6 +371,17 @@ def test_full_commit_rollback_covers_validation_topology_and_project_record(
     FractureProject.open(project.path)
 
 
+def test_legacy_polygonal_processed_record_requires_explicit_topology_regeneration(tmp_path):
+    project = create_project(tmp_path)
+    project.process_glyph("O")
+    project.data["processedGlyphs"]["O"].pop("outlineReconstructionVersion")
+    project._save()
+
+    assert project.glyph_status("O") == "topology-outdated"
+    with pytest.raises(ProjectError, match="legacy polygonal exterior topology"):
+        project.regenerate_motion("O")
+
+
 def test_post_save_reopen_exception_rolls_back_every_persistent_side(tmp_path, monkeypatch):
     project = create_project(tmp_path)
     original = project.path.read_bytes()
@@ -380,12 +391,12 @@ def test_post_save_reopen_exception_rolls_back_every_persistent_side(tmp_path, m
 
     monkeypatch.setattr("fracturize.project.read_master", fail_read)
     with pytest.raises(OSError, match="serialized reopen failure"):
-        project.process_glyph("H")
+        project.process_glyph("I")
     assert project.path.read_bytes() == original
-    assert not project._topology_path("H").exists()
+    assert not project._topology_path("I").exists()
     for path in (project.intact_path, project.eroded_path):
         font = Font(path)
-        assert "H" not in font
+        assert "I" not in font
         font.close()
     FractureProject.open(project.path)
 
@@ -403,12 +414,12 @@ def test_serialized_validation_failure_rolls_back_every_persistent_side(tmp_path
 
     monkeypatch.setattr(project_module, "validate_pair", incompatible)
     with pytest.raises(ProjectError, match="serialized output validation failed"):
-        project.process_glyph("H")
+        project.process_glyph("I")
     assert project.path.read_bytes() == original
-    assert not project._topology_path("H").exists()
+    assert not project._topology_path("I").exists()
     for path in (project.intact_path, project.eroded_path):
         font = Font(path)
-        assert "H" not in font
+        assert "I" not in font
         font.close()
 
 

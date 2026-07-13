@@ -9,13 +9,16 @@ from shapely.geometry import LineString, Point
 from shapely.ops import polygonize, split, unary_union
 
 from .geometry import (
+    UnsupportedOutlineError,
     adaptive_flattening_tolerance,
     geometry_polygons,
     geometry_to_canonical_rings,
     master_contours_to_union,
     normalize_outline,
 )
+from .hybrid import reconstruct_hybrid_contours
 from .model import (
+    CubicSegment,
     ComplexityProfile,
     Fragment,
     GenerationResult,
@@ -23,6 +26,8 @@ from .model import (
     GlyphOutline,
     MasterContour,
     MasterGlyph,
+    LineSegment,
+    master_contour_segments,
 )
 from .validation import validate_pair
 
@@ -34,6 +39,7 @@ TOPOLOGY_VERSION = "branching-rough-crack-mesh-v2"
 EDGE_PROFILE_VERSION = "independent-rock-edge-detail-v1"
 MOTION_ALGORITHM_V1 = "fragment-affine-motion-v1"
 MOTION_ALGORITHM_VERSION = "architectural-erosion-v2"
+OUTLINE_RECONSTRUCTION_VERSION = "hybrid-source-exterior-v1"
 
 
 @dataclass(frozen=True)
@@ -965,17 +971,35 @@ def _transform_contour(contour: MasterContour, origin, translation, rotation_deg
     angle = math.radians(rotation_degrees)
     cosine = math.cos(angle)
     sine = math.sin(angle)
-    transformed = []
-    for x, y in contour.points:
+    def transform(point):
+        x, y = point
         local_x = (x - origin[0]) * scale
         local_y = (y - origin[1]) * scale
-        transformed.append(
-            (
-                origin[0] + local_x * cosine - local_y * sine + translation[0],
-                origin[1] + local_x * sine + local_y * cosine + translation[1],
-            )
+        return (
+            origin[0] + local_x * cosine - local_y * sine + translation[0],
+            origin[1] + local_x * sine + local_y * cosine + translation[1],
         )
-    return replace(contour, points=tuple(transformed))
+
+    transformed_segments = []
+    for segment in master_contour_segments(contour):
+        if isinstance(segment, CubicSegment):
+            transformed_segments.append(
+                CubicSegment(
+                    transform(segment.start),
+                    transform(segment.control1),
+                    transform(segment.control2),
+                    transform(segment.end),
+                )
+            )
+        else:
+            transformed_segments.append(
+                LineSegment(transform(segment.start), transform(segment.end))
+            )
+    return replace(
+        contour,
+        points=tuple(segment.end for segment in transformed_segments),
+        segments=tuple(transformed_segments),
+    )
 
 
 def generate_pair(
@@ -987,7 +1011,22 @@ def generate_pair(
     motion_algorithm_version: str = MOTION_ALGORITHM_VERSION,
 ) -> GenerationResult:
     tolerance = adaptive_flattening_tolerance(outline.units_per_em)
-    _, silhouette, normalization = normalize_outline(outline, tolerance)
+    source_rings, silhouette, normalization = normalize_outline(outline, tolerance)
+    crossing_contours = any(
+        LineString((*source_rings[first], source_rings[first][0])).intersects(
+            LineString((*source_rings[second], source_rings[second][0]))
+        )
+        for first in range(len(source_rings))
+        for second in range(first)
+    )
+    if topology_generator is generate_topology and (
+        normalization.normalization_applied
+        or normalization.self_intersecting_contours
+        or crossing_contours
+    ):
+        raise UnsupportedOutlineError(
+            "hybrid cubic reconstruction does not support overlapping or self-intersecting source contours"
+        )
     profile = complexity_profile(
         settings.complexity,
         area=silhouette.area,
@@ -1001,7 +1040,7 @@ def generate_pair(
             seed,
             outline.units_per_em,
         )
-        pieces = topology_generator(
+        crack_lines, pieces = _profiled_crack_topology(
             silhouette,
             profile,
             seed,
@@ -1011,17 +1050,36 @@ def generate_pair(
     else:
         pieces = topology_generator(silhouette, profile, seed, outline.units_per_em)
         canonical_pieces = pieces
+        crack_lines = None
 
     if len(pieces) != len(canonical_pieces):
         raise RuntimeError("edge profiling changed the canonical fragment count")
+
+    fragment_ids = tuple(
+        _fragment_identifier(seed, index, macro_piece, topology_version)
+        for index, macro_piece in enumerate(canonical_pieces)
+    )
+    hybrid_contours = None
+    if topology_generator is generate_topology:
+        hybrid_contours = reconstruct_hybrid_contours(
+            outline,
+            pieces,
+            crack_lines,
+            fragment_ids,
+            flattening_tolerance=tolerance,
+        )
 
     canonical_fragments = []
     intact_contours = []
     for index, (piece, macro_piece) in enumerate(zip(pieces, canonical_pieces)):
         # Identity and all motion-driving metrics belong to the clean macro
         # face. Rock Edge Detail may alter only the contour drawn around it.
-        fragment_id = _fragment_identifier(seed, index, macro_piece, topology_version)
-        canonical = _contours_for_fragment(fragment_id, piece)
+        fragment_id = fragment_ids[index]
+        canonical = (
+            hybrid_contours[index]
+            if hybrid_contours is not None
+            else _contours_for_fragment(fragment_id, piece)
+        )
         origin = (macro_piece.centroid.x, macro_piece.centroid.y)
         canonical_fragments.append(
             Fragment(
@@ -1071,15 +1129,22 @@ def generate_pair(
 
     intact = MasterGlyph(outline.name, outline.width, outline.unicodes, tuple(intact_contours))
     eroded = MasterGlyph(outline.name, outline.width, outline.unicodes, tuple(eroded_contours))
+    # Hybrid contours are authoritative on the exterior. Their fine-flattened
+    # union avoids treating the coarser fracture-classification proxy as truth.
+    validation_source = (
+        master_contours_to_union(intact.contours, tolerance=tolerance * 0.02)
+        if hybrid_contours is not None
+        else silhouette
+    )
     report = validate_pair(
-        source_silhouette=silhouette,
+        source_silhouette=validation_source,
         intact=intact,
         eroded=eroded,
         units_per_em=outline.units_per_em,
         minimum_area=profile.minimum_area,
     )
     notes = (
-        "Source cubics were adaptively flattened; output contours contain line segments only.",
+        "Original cubic and line segments are preserved on the exterior; generated line segments occur only on fracture edges.",
         "Complexity changes deterministically regenerate topology; refinement is not nested.",
     )
     return GenerationResult(
@@ -1094,6 +1159,11 @@ def generate_pair(
         eroded=eroded,
         validation=report,
         notes=notes,
+        outline_reconstruction_version=(
+            OUTLINE_RECONSTRUCTION_VERSION
+            if hybrid_contours is not None
+            else "polygonal-v1"
+        ),
     )
 
 

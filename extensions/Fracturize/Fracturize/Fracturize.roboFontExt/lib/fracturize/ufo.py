@@ -6,7 +6,13 @@ import shutil
 
 from defcon import Font
 
-from .model import GenerationResult, MasterGlyph
+from .model import (
+    CubicSegment,
+    GenerationResult,
+    LineSegment,
+    MasterGlyph,
+    master_contour_segments,
+)
 
 LIB_KEY = "com.fracturize.stage1.fragments"
 
@@ -24,8 +30,26 @@ def _draw_master(font: Font, master: MasterGlyph, *, extra_lib: dict | None = No
     fragment_map = []
     for contour in master.contours:
         point_pen.beginPath(identifier=contour.identifier)
-        for point, point_id in zip(contour.points, contour.point_ids, strict=True):
-            point_pen.addPoint(point, segmentType="line", identifier=point_id)
+        for index, segment in enumerate(master_contour_segments(contour)):
+            if isinstance(segment, CubicSegment):
+                point_pen.addPoint(
+                    segment.control1,
+                    segmentType=None,
+                    identifier=f"{contour.point_ids[index]}-off1",
+                )
+                point_pen.addPoint(
+                    segment.control2,
+                    segmentType=None,
+                    identifier=f"{contour.point_ids[index]}-off2",
+                )
+                segment_type = "curve"
+            else:
+                segment_type = "line"
+            point_pen.addPoint(
+                segment.end,
+                segmentType=segment_type,
+                identifier=contour.point_ids[index],
+            )
         point_pen.endPath()
         fragment_map.append(
             {
@@ -48,14 +72,51 @@ def master_from_glyph(glyph) -> MasterGlyph:
 
     for contour in glyph:
         entry = fragment_entries[contour.identifier]
+        defcon_segments = list(contour.segments)
+        previous = defcon_segments[-1][-1]
+        segments = []
+        point_ids = []
+        for defcon_segment in defcon_segments:
+            oncurve = defcon_segment[-1]
+            start = (float(previous.x), float(previous.y))
+            end = (float(oncurve.x), float(oncurve.y))
+            if oncurve.segmentType == "curve":
+                control1, control2, _ = defcon_segment
+                segments.append(
+                    CubicSegment(
+                        start,
+                        (float(control1.x), float(control1.y)),
+                        (float(control2.x), float(control2.y)),
+                        end,
+                    )
+                )
+            elif oncurve.segmentType == "line":
+                segments.append(LineSegment(start, end))
+            else:
+                raise ValueError(f"unsupported generated segment type: {oncurve.segmentType!r}")
+            point_ids.append(oncurve.identifier)
+            previous = oncurve
+        expected_prefix = f"{contour.identifier}-p0"
+        start_index = next(
+            (
+                index
+                for index, identifier in enumerate(point_ids)
+                if identifier and identifier.startswith(expected_prefix)
+            ),
+            0,
+        )
+        if start_index:
+            segments = segments[start_index:] + segments[:start_index]
+            point_ids = point_ids[start_index:] + point_ids[:start_index]
         contours.append(
             MasterContour(
                 identifier=contour.identifier,
                 fragment_id=entry["fragmentID"],
                 part_index=entry["partIndex"],
                 is_hole=entry["isHole"],
-                points=tuple((point.x, point.y) for point in contour),
-                point_ids=tuple(point.identifier for point in contour),
+                points=tuple(segment.end for segment in segments),
+                point_ids=tuple(point_ids),
+                segments=tuple(segments),
             )
         )
     return MasterGlyph(glyph.name, glyph.width, tuple(glyph.unicodes), tuple(contours))

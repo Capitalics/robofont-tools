@@ -127,6 +127,20 @@ class MasterContour:
     is_hole: bool
     points: tuple[Point, ...]
     point_ids: tuple[str, ...]
+    # Ordered closed-path segments. Older topology records omit this field and
+    # are interpreted as cyclic line segments through ``points``.
+    segments: tuple[Segment, ...] = ()
+
+
+def master_contour_segments(contour: MasterContour) -> tuple[Segment, ...]:
+    if contour.segments:
+        return contour.segments
+    if not contour.points:
+        return ()
+    return tuple(
+        LineSegment(contour.points[index - 1], point)
+        for index, point in enumerate(contour.points)
+    )
 
 
 @dataclass(frozen=True)
@@ -208,3 +222,4 @@ class GenerationResult:
     eroded: MasterGlyph
     validation: ValidationReport
     notes: tuple[str, ...] = field(default_factory=tuple)
+    outline_reconstruction_version: str = "polygonal-v1"

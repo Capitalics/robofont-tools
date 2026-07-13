@@ -16,6 +16,7 @@ from . import __version__
 from .core import (
     EDGE_PROFILE_VERSION,
     MOTION_ALGORITHM_VERSION,
+    OUTLINE_RECONSTRUCTION_VERSION,
     SEED_DERIVATION_VERSION,
     TOPOLOGY_VERSION,
     derive_effective_seed,
@@ -25,7 +26,13 @@ from .core import (
 from .geometry import master_contours_to_union
 from .fingerprints import glyph_content_digest, source_fingerprint
 from .input_ufo import defcon_glyph_to_outline
-from .model import GenerationResult, GenerationSettings, MasterGlyph
+from .model import (
+    CubicSegment,
+    GenerationResult,
+    GenerationSettings,
+    MasterGlyph,
+    master_contour_segments,
+)
 from .topology import read_topology, topology_digest, write_topology
 from .ufo import LIB_KEY, master_from_glyph
 from .validation import validate_pair
@@ -341,8 +348,18 @@ def _draw_outline_only(glyph, master: MasterGlyph, metadata: dict):
     fragment_map = []
     for contour in master.contours:
         point_pen.beginPath(identifier=contour.identifier)
-        for point, point_id in zip(contour.points, contour.point_ids, strict=True):
-            point_pen.addPoint(point, segmentType="line", identifier=point_id)
+        for index, segment in enumerate(master_contour_segments(contour)):
+            if isinstance(segment, CubicSegment):
+                point_pen.addPoint(segment.control1, segmentType=None)
+                point_pen.addPoint(segment.control2, segmentType=None)
+                segment_type = "curve"
+            else:
+                segment_type = "line"
+            point_pen.addPoint(
+                segment.end,
+                segmentType=segment_type,
+                identifier=contour.point_ids[index],
+            )
         point_pen.endPath()
         fragment_map.append(
             {
@@ -712,6 +729,9 @@ class LiveFractureProject:
         if current != record["sourceFingerprint"]:
             return "stale"
         if (
+            record.get("outlineReconstructionVersion", "polygonal-v1")
+            != OUTLINE_RECONSTRUCTION_VERSION
+            or
             record["effectiveSeed"] != derive_effective_seed(self.settings, glyph_name)
             or record["topologyComplexity"] != self.settings.complexity
             or record.get(
@@ -741,6 +761,10 @@ class LiveFractureProject:
         record = self.data["processedGlyphs"].get(glyph_name)
         if record is None:
             raise LiveProjectError(f"glyph has no stored topology: {glyph_name}")
+        if record.get("outlineReconstructionVersion", "polygonal-v1") != OUTLINE_RECONSTRUCTION_VERSION:
+            raise LiveProjectError(
+                f"{glyph_name} uses legacy polygonal exterior topology; explicit topology regeneration is required"
+            )
         topology, units_per_em = read_topology(self.directory / record["topologyPath"])
         return regenerate_motion_from_topology(
             topology,
@@ -842,6 +866,7 @@ class LiveFractureProject:
                 "topologyDigest": topology_hash,
                 "topologyComplexity": result.profile.value,
                 "topologyRockEdgeDetail": result.rock_edge_detail,
+                "outlineReconstructionVersion": result.outline_reconstruction_version,
                 "effectiveSeed": result.effective_seed,
                 "pairRevision": pair_revision,
                 "componentsDecomposed": bool(components_decomposed),
