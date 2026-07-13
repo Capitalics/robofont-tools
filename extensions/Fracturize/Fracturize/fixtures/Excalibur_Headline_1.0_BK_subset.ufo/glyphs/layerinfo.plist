@@ -1,0 +1,93 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>color</key>
+    <string>1,0.75,0,0.7</string>
+    <key>lib</key>
+    <dict>
+      <key>KernOnIndependentPairs</key>
+      <array>
+        <string>period ellipsis</string>
+        <string>exclam period</string>
+        <string>period exclam</string>
+        <string>ellipsis period</string>
+        <string>ellipsis ellipsis</string>
+        <string>exclam ellipsis</string>
+        <string>ellipsis exclam</string>
+        <string>question period</string>
+        <string>period question</string>
+        <string>question ellipsis</string>
+        <string>ellipsis question</string>
+        <string>period period</string>
+      </array>
+      <key>KernOnModels</key>
+      <array>
+        <string>A Y</string>
+        <string>T o</string>
+        <string>e quotedbl</string>
+        <string>em-cy twosuperior</string>
+        <string>k o</string>
+        <string>f o</string>
+        <string>hyphen n</string>
+        <string>k y</string>
+        <string>r o</string>
+        <string>E Y</string>
+        <string>t t</string>
+        <string>X X</string>
+        <string>z o</string>
+        <string>R S</string>
+        <string>O H</string>
+        <string>i t</string>
+        <string>o f</string>
+        <string>f n</string>
+        <string>f f</string>
+        <string>r n</string>
+        <string>r u</string>
+        <string>o s</string>
+        <string>s s</string>
+        <string>z n</string>
+        <string>c n</string>
+        <string>a a</string>
+        <string>g g</string>
+        <string>o b</string>
+        <string>k k</string>
+        <string>n n</string>
+        <string>i period</string>
+        <string>S D</string>
+        <string>O S</string>
+        <string>H S</string>
+        <string>S T</string>
+        <string>E H</string>
+        <string>H E</string>
+        <string>T H</string>
+        <string>G H</string>
+        <string>K H</string>
+        <string>A H</string>
+        <string>H quotesingle</string>
+        <string>H underscore</string>
+        <string>t z</string>
+        <string>o c</string>
+        <string>u x</string>
+        <string>S S</string>
+        <string>v y</string>
+        <string>g u</string>
+        <string>L A</string>
+        <string>r f</string>
+        <string>g w</string>
+        <string>D o</string>
+        <string>one five</string>
+        <string>r y</string>
+      </array>
+      <key>SBAreas</key>
+      <dict>
+        <key>H</key>
+        <real>54190.24605</real>
+        <key>en-cy</key>
+        <real>30334.24605</real>
+        <key>n</key>
+        <real>30664.4666</real>
+      </dict>
+    </dict>
+  </dict>
+</plist>

@@ -1,0 +1,356 @@
+{
+  "effectiveSeed": 1521778514714126572,
+  "flatteningTolerance": 0.5,
+  "format": "com.fracturize.topology",
+  "formatVersion": 1,
+  "fragments": [
+    {
+      "area": 31856.124050638056,
+      "bounds": [
+        19.0,
+        0.0,
+        182.0,
+        460.7804321555388
+      ],
+      "centroid": [
+        113.96611965394962,
+        142.37627499394546
+      ],
+      "identifier": "fr-fc6e0af9fbfccd96c61c",
+      "intactContours": [
+        {
+          "fragmentID": "fr-fc6e0af9fbfccd96c61c",
+          "identifier": "fr-fc6e0af9fbfccd96c61c-c0",
+          "isHole": false,
+          "partIndex": 0,
+          "pointIDs": [
+            "fr-fc6e0af9fbfccd96c61c-c0-p0",
+            "fr-fc6e0af9fbfccd96c61c-c0-p1",
+            "fr-fc6e0af9fbfccd96c61c-c0-p2",
+            "fr-fc6e0af9fbfccd96c61c-c0-p3",
+            "fr-fc6e0af9fbfccd96c61c-c0-p4",
+            "fr-fc6e0af9fbfccd96c61c-c0-p5",
+            "fr-fc6e0af9fbfccd96c61c-c0-p6",
+            "fr-fc6e0af9fbfccd96c61c-c0-p7",
+            "fr-fc6e0af9fbfccd96c61c-c0-p8",
+            "fr-fc6e0af9fbfccd96c61c-c0-p9",
+            "fr-fc6e0af9fbfccd96c61c-c0-p10",
+            "fr-fc6e0af9fbfccd96c61c-c0-p11",
+            "fr-fc6e0af9fbfccd96c61c-c0-p12",
+            "fr-fc6e0af9fbfccd96c61c-c0-p13",
+            "fr-fc6e0af9fbfccd96c61c-c0-p14",
+            "fr-fc6e0af9fbfccd96c61c-c0-p15",
+            "fr-fc6e0af9fbfccd96c61c-c0-p16",
+            "fr-fc6e0af9fbfccd96c61c-c0-p17",
+            "fr-fc6e0af9fbfccd96c61c-c0-p18",
+            "fr-fc6e0af9fbfccd96c61c-c0-p19",
+            "fr-fc6e0af9fbfccd96c61c-c0-p20",
+            "fr-fc6e0af9fbfccd96c61c-c0-p21",
+            "fr-fc6e0af9fbfccd96c61c-c0-p22",
+            "fr-fc6e0af9fbfccd96c61c-c0-p23",
+            "fr-fc6e0af9fbfccd96c61c-c0-p24",
+            "fr-fc6e0af9fbfccd96c61c-c0-p25",
+            "fr-fc6e0af9fbfccd96c61c-c0-p26"
+          ],
+          "points": [
+            [
+              19.0,
+              453.0
+            ],
+            [
+              24.4267578125,
+              449.3310546875
+            ],
+            [
+              29.4609375,
+              444.3203125
+            ],
+            [
+              34.1083984375,
+              437.9619140625
+            ],
+            [
+              38.375,
+              430.25
+            ],
+            [
+              42.2666015625,
+              421.1787109375
+            ],
+            [
+              45.7890625,
+              410.7421875
+            ],
+            [
+              51.75,
+              385.75
+            ],
+            [
+              56.3046875,
+              355.2265625
+            ],
+            [
+              59.5,
+              319.125
+            ],
+            [
+              61.3828125,
+              277.3984375
+            ],
+            [
+              62.0,
+              230.0
+            ],
+            [
+              62.0,
+              0.0
+            ],
+            [
+              182.0,
+              0.0
+            ],
+            [
+              182.0,
+              221.3486174603797
+            ],
+            [
+              169.91996615753425,
+              220.79615481547754
+            ],
+            [
+              146.9135592334264,
+              219.35943529241035
+            ],
+            [
+              121.57942959203027,
+              239.3527983135399
+            ],
+            [
+              95.43880683721369,
+              243.70233192855446
+            ],
+            [
+              87.61029341359797,
+              267.49114564120094
+            ],
+            [
+              95.53008738768769,
+              299.4841790618445
+            ],
+            [
+              78.22511886276298,
+              323.1317269127786
+            ],
+            [
+              59.01767915371248,
+              363.8001519697032
+            ],
+            [
+              61.82641693008083,
+              387.4754763104649
+            ],
+            [
+              49.01579729021966,
+              426.5920748566079
+            ],
+            [
+              41.93325911495909,
+              460.7804321555388
+            ],
+            [
+              19.0,
+              458.0
+            ]
+          ]
+        }
+      ],
+      "transformOrigin": [
+        113.96611965394962,
+        142.37627499394546
+      ]
+    },
+    {
+      "area": 27713.903056600717,
+      "bounds": [
+        41.93325911495909,
+        219.35943529241035,
+        187.0,
+        495.0
+      ],
+      "centroid": [
+        127.3431699920003,
+        363.8304721969905
+      ],
+      "identifier": "fr-aee18ca4ef4d5eb5a132",
+      "intactContours": [
+        {
+          "fragmentID": "fr-aee18ca4ef4d5eb5a132",
+          "identifier": "fr-aee18ca4ef4d5eb5a132-c0",
+          "isHole": false,
+          "partIndex": 0,
+          "pointIDs": [
+            "fr-aee18ca4ef4d5eb5a132-c0-p0",
+            "fr-aee18ca4ef4d5eb5a132-c0-p1",
+            "fr-aee18ca4ef4d5eb5a132-c0-p2",
+            "fr-aee18ca4ef4d5eb5a132-c0-p3",
+            "fr-aee18ca4ef4d5eb5a132-c0-p4",
+            "fr-aee18ca4ef4d5eb5a132-c0-p5",
+            "fr-aee18ca4ef4d5eb5a132-c0-p6",
+            "fr-aee18ca4ef4d5eb5a132-c0-p7",
+            "fr-aee18ca4ef4d5eb5a132-c0-p8",
+            "fr-aee18ca4ef4d5eb5a132-c0-p9",
+            "fr-aee18ca4ef4d5eb5a132-c0-p10",
+            "fr-aee18ca4ef4d5eb5a132-c0-p11",
+            "fr-aee18ca4ef4d5eb5a132-c0-p12",
+            "fr-aee18ca4ef4d5eb5a132-c0-p13",
+            "fr-aee18ca4ef4d5eb5a132-c0-p14",
+            "fr-aee18ca4ef4d5eb5a132-c0-p15",
+            "fr-aee18ca4ef4d5eb5a132-c0-p16",
+            "fr-aee18ca4ef4d5eb5a132-c0-p17",
+            "fr-aee18ca4ef4d5eb5a132-c0-p18",
+            "fr-aee18ca4ef4d5eb5a132-c0-p19",
+            "fr-aee18ca4ef4d5eb5a132-c0-p20",
+            "fr-aee18ca4ef4d5eb5a132-c0-p21",
+            "fr-aee18ca4ef4d5eb5a132-c0-p22"
+          ],
+          "points": [
+            [
+              41.93325911495909,
+              460.7804321555388
+            ],
+            [
+              49.01579729021966,
+              426.5920748566079
+            ],
+            [
+              61.82641693008083,
+              387.4754763104649
+            ],
+            [
+              59.01767915371248,
+              363.8001519697032
+            ],
+            [
+              78.22511886276298,
+              323.1317269127786
+            ],
+            [
+              95.53008738768769,
+              299.4841790618445
+            ],
+            [
+              87.61029341359797,
+              267.49114564120094
+            ],
+            [
+              95.43880683721369,
+              243.70233192855446
+            ],
+            [
+              121.57942959203027,
+              239.3527983135399
+            ],
+            [
+              146.9135592334264,
+              219.35943529241035
+            ],
+            [
+              169.91996615753425,
+              220.79615481547754
+            ],
+            [
+              182.0,
+              221.3486174603797
+            ],
+            [
+              182.0,
+              230.0
+            ],
+            [
+              182.625,
+              404.25
+            ],
+            [
+              184.109375,
+              452.46875
+            ],
+            [
+              187.0,
+              493.0
+            ],
+            [
+              182.0,
+              495.0
+            ],
+            [
+              175.873779296875,
+              491.15673828125
+            ],
+            [
+              168.146484375,
+              487.50390625
+            ],
+            [
+              148.796875,
+              480.78125
+            ],
+            [
+              125.767578125,
+              474.85546875
+            ],
+            [
+              100.875,
+              469.75
+            ],
+            [
+              52.765625,
+              462.09375
+            ]
+          ]
+        }
+      ],
+      "transformOrigin": [
+        127.3431699920003,
+        363.8304721969905
+      ]
+    }
+  ],
+  "glyphName": "idotless",
+  "normalization": {
+    "cause": "simple source contours",
+    "cross_tolerance_hausdorff_distance": 0.0,
+    "cross_tolerance_normalized_difference": 0.0,
+    "cross_tolerance_symmetric_difference": 0.0,
+    "evenodd_area": 59570.02710723877,
+    "fill_rule": "non-zero winding",
+    "maximum_absolute_winding": 1,
+    "nonzero_area": 59570.02710723877,
+    "normalization_applied": false,
+    "point_crossing_count": 0,
+    "primary_face_count": 1,
+    "reference_face_count": 1,
+    "self_intersecting_contours": [],
+    "winding_histogram": [
+      1
+    ]
+  },
+  "notes": [
+    "Source cubics were adaptively flattened; output contours contain line segments only.",
+    "Complexity changes deterministically regenerate topology; refinement is not nested."
+  ],
+  "profile": {
+    "chip_probability": 0.16,
+    "detail_depth": 3,
+    "edge_irregularity": 0.30000000000000004,
+    "minimum_area": 2699.9999999999995,
+    "primary_split_count": 1,
+    "secondary_probability": 0.29,
+    "target_fragments": 2,
+    "value": 50
+  },
+  "unicodes": [
+    305
+  ],
+  "unitsPerEm": 1000.0,
+  "width": 242.0
+}

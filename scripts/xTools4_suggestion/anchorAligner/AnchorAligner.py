@@ -1,8 +1,9 @@
 import os
+from pathlib import Path
 
 from fontTools.designspaceLib import DesignSpaceDocument
 from mojo.UI import GetFile
-from mojo.roboFont import CurrentGlyph, OpenFont
+from mojo.roboFont import CurrentFont, CurrentGlyph, OpenFont
 from vanilla import Button, FloatingWindow, TextBox, TextEditor
 
 
@@ -106,11 +107,40 @@ class AnchorAlignerController:
             path = os.path.normpath(os.path.abspath(path))
         return path
 
+    def _sourceTreeDirectory(self, fontPath):
+        if not fontPath:
+            return None
+        parts = Path(os.path.realpath(fontPath)).parts
+        for index in range(len(parts) - 1):
+            if parts[index] == 'Sources' and parts[index + 1] in ('Roman', 'Italic'):
+                return os.path.normpath(str(Path(*parts[:index + 2])))
+        return None
+
+    def _collectSourcePaths(self, document):
+        currentFont = CurrentFont()
+        currentFontPath = getattr(currentFont, 'path', None) if currentFont is not None else None
+        sourceTreeDirectory = self._sourceTreeDirectory(currentFontPath)
+        if sourceTreeDirectory is None:
+            raise ValueError(
+                'The current font must be a UFO in the Sources/Roman or Sources/Italic tree.'
+            )
+
+        sourcePaths = []
+        for source in document.sources:
+            path = self._sourcePath(source)
+            if not path or Path(path).suffix.lower() != '.ufo':
+                continue
+            # Parametric masters are direct children. Nested reference and Tuning
+            # UFOs are blending/key-moment inputs and must remain untouched.
+            if os.path.dirname(os.path.realpath(path)) == sourceTreeDirectory:
+                sourcePaths.append(path)
+        return sourcePaths
+
     def _loadDesignspace(self):
         try:
             document = DesignSpaceDocument()
             document.read(self.designspacePath)
-            sourcePaths = [self._sourcePath(source) for source in document.sources]
+            sourcePaths = self._collectSourcePaths(document)
         except Exception as error:
             self.designspace = None
             self.sourcePaths = []

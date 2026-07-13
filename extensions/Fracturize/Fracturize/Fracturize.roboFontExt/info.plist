@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>addToMenu</key>
+  <array>
+    <dict>
+      <key>path</key>
+      <string>startup.py</string>
+      <key>preferredName</key>
+      <string>Fracturize</string>
+      <key>shortKey</key>
+      <string></string>
+    </dict>
+  </array>
+  <key>developer</key>
+  <string>Borys Kosmynka</string>
+  <key>developerURL</key>
+  <string></string>
+  <key>html</key>
+  <false/>
+  <key>launchAtStartUp</key>
+  <false/>
+  <key>name</key>
+  <string>Fracturize</string>
+  <key>requiresVersionMajor</key>
+  <string>4</string>
+  <key>requiresVersionMinor</key>
+  <string>6</string>
+  <key>timeStamp</key>
+  <real>0.0</real>
+  <key>version</key>
+  <string>0.1-internal</string>
+</dict>
+</plist>

@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>com.fracturize.outputRole</key>
+    <string>eroded</string>
+    <key>com.fracturize.projectID</key>
+    <string>e6762ee8-5081-4537-86ca-8c64bc1c262d</string>
+    <key>public.glyphOrder</key>
+    <array>
+      <string>A</string>
+      <string>M</string>
+      <string>O</string>
+      <string>dotaccentcomb</string>
+      <string>S</string>
+      <string>H</string>
+      <string>I</string>
+      <string>a</string>
+      <string>idotless</string>
+      <string>eight</string>
+      <string>R</string>
+      <string>i</string>
+    </array>
+  </dict>
+</plist>

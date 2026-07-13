@@ -1,0 +1,290 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="A" format="2">
+  <advance width="627.0"/>
+  <unicode hex="0041"/>
+  <outline>
+    <contour identifier="fr-c351710a62ed66e82ea3-c0">
+      <point x="-24.0" y="-3.0" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p0"/>
+      <point x="10.75" y="-1.125" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p1"/>
+      <point x="71.0" y="0.0" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p2"/>
+      <point x="137.75" y="-1.125" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p3"/>
+      <point x="139.38010582861924" y="-1.1896867392309225" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p4"/>
+      <point x="185.0" y="-3.0" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p5"/>
+      <point x="185.0" y="4.0" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p6"/>
+      <point x="174.3115234375" y="6.177001953125" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p7"/>
+      <point x="164.7421875" y="8.994140625" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p8"/>
+      <point x="156.2861328125" y="12.505615234375" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p9"/>
+      <point x="152.69971946082444" y="14.584662628839677" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p10"/>
+      <point x="148.9375" y="16.765625" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p11"/>
+      <point x="142.6904296875" y="21.828369140625" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p12"/>
+      <point x="137.5390625" y="27.748046875" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p13"/>
+      <point x="133.4775390625" y="34.578857421875" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p14"/>
+      <point x="130.5" y="42.375" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p15"/>
+      <point x="128.6005859375" y="51.190673828125" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p16"/>
+      <point x="127.7734375" y="61.080078125" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p17"/>
+      <point x="128.0126953125" y="72.097412109375" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p18"/>
+      <point x="129.3125" y="84.296875" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p19"/>
+      <point x="131.6669921875" y="97.732666015625" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p20"/>
+      <point x="135.0703125" y="112.458984375" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p21"/>
+      <point x="145.0" y="146.0" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p22"/>
+      <point x="160.4803685092684" y="192.44110552780523" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p23"/>
+      <point x="135.45722279163837" y="183.90344558174954" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p24"/>
+      <point x="101.5940534545754" y="184.22226641611735" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p25"/>
+      <point x="81.92894754380826" y="172.31571956345408" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p26"/>
+      <point x="59.24673689277059" y="152.68560906257" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p27"/>
+      <point x="58.0" y="149.0" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p28"/>
+      <point x="45.86328125" y="114.46875" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p29"/>
+      <point x="34.78125" y="85.5625" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p30"/>
+      <point x="24.49609375" y="61.8125" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p31"/>
+      <point x="14.75" y="42.75" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p32"/>
+      <point x="5.28515625" y="27.90625" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p33"/>
+      <point x="-4.15625" y="16.8125" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p34"/>
+      <point x="-13.83203125" y="9.0" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p35"/>
+      <point x="-24.0" y="4.0" type="line" identifier="fr-c351710a62ed66e82ea3-c0-p36"/>
+    </contour>
+    <contour identifier="fr-bac066e324b013038ff6-c0">
+      <point x="59.24673689277059" y="152.68560906257" type="line" identifier="fr-bac066e324b013038ff6-c0-p0"/>
+      <point x="81.92894754380826" y="172.31571956345408" type="line" identifier="fr-bac066e324b013038ff6-c0-p1"/>
+      <point x="111.63156487324682" y="199.15826524045448" type="line" identifier="fr-bac066e324b013038ff6-c0-p2"/>
+      <point x="134.68164197308445" y="217.1957847512399" type="line" identifier="fr-bac066e324b013038ff6-c0-p3"/>
+      <point x="159.70482601627896" y="249.76977017487917" type="line" identifier="fr-bac066e324b013038ff6-c0-p4"/>
+      <point x="193.2121934607446" y="268.6247807856936" type="line" identifier="fr-bac066e324b013038ff6-c0-p5"/>
+      <point x="200.80806779979392" y="278.0" type="line" identifier="fr-bac066e324b013038ff6-c0-p6"/>
+      <point x="189.0" y="278.0" type="line" identifier="fr-bac066e324b013038ff6-c0-p7"/>
+      <point x="259.15991913865327" y="488.4797574159598" type="line" identifier="fr-bac066e324b013038ff6-c0-p8"/>
+      <point x="254.37848312623885" y="531.1660119333916" type="line" identifier="fr-bac066e324b013038ff6-c0-p9"/>
+      <point x="251.91377727895795" y="565.309404701665" type="line" identifier="fr-bac066e324b013038ff6-c0-p10"/>
+      <point x="236.12150635037943" y="601.8949344888958" type="line" identifier="fr-bac066e324b013038ff6-c0-p11"/>
+      <point x="227.2245517111763" y="632.863970371109" type="line" identifier="fr-bac066e324b013038ff6-c0-p12"/>
+      <point x="212.7084752043471" y="648.8062146461309" type="line" identifier="fr-bac066e324b013038ff6-c0-p13"/>
+      <point x="212.875" y="637.0" type="line" identifier="fr-bac066e324b013038ff6-c0-p14"/>
+      <point x="211.013671875" y="617.9140625" type="line" identifier="fr-bac066e324b013038ff6-c0-p15"/>
+      <point x="207.265625" y="597.5625" type="line" identifier="fr-bac066e324b013038ff6-c0-p16"/>
+      <point x="201.853515625" y="576.1796875" type="line" identifier="fr-bac066e324b013038ff6-c0-p17"/>
+      <point x="195.0" y="554.0" type="line" identifier="fr-bac066e324b013038ff6-c0-p18"/>
+      <point x="83.8434022861479" y="225.39837902109417" type="line" identifier="fr-bac066e324b013038ff6-c0-p19"/>
+    </contour>
+    <contour identifier="fr-a47e1353fcda18e0c0e1-c0">
+      <point x="81.92894754380826" y="172.31571956345408" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p0"/>
+      <point x="101.5940534545754" y="184.22226641611735" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p1"/>
+      <point x="135.45722279163837" y="183.90344558174954" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p2"/>
+      <point x="160.4803685092684" y="192.44110552780523" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p3"/>
+      <point x="162.1450668147764" y="197.43520044432924" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p4"/>
+      <point x="164.0" y="203.0" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p5"/>
+      <point x="165.16100053286263" y="203.0" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p6"/>
+      <point x="204.68832617128888" y="203.0" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p7"/>
+      <point x="262.94809423890877" y="203.0" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p8"/>
+      <point x="242.34241542542472" y="218.98160265985626" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p9"/>
+      <point x="251.29086313546182" y="222.7796107529243" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p10"/>
+      <point x="292.1363522617968" y="229.34277053476393" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p11"/>
+      <point x="334.65407177106385" y="241.298256290379" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p12"/>
+      <point x="401.5030981373731" y="254.64619036505476" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p13"/>
+      <point x="417.3803565577206" y="265.8368260748478" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p14"/>
+      <point x="458.13184498888614" y="279.72556272095915" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p15"/>
+      <point x="488.76224662737326" y="284.52224192935756" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p16"/>
+      <point x="497.54254397590677" y="286.25402131094614" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p17"/>
+      <point x="504.1292982549008" y="287.55315786625397" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p18"/>
+      <point x="486.43021118072704" y="341.8369500658148" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p19"/>
+      <point x="483.39080607975006" y="351.15892436992857" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p20"/>
+      <point x="468.74122019916274" y="354.1461383584445" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p21"/>
+      <point x="445.1959779366975" y="366.4233697584579" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p22"/>
+      <point x="400.8397653694717" y="382.628312121259" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p23"/>
+      <point x="373.41277276793494" y="372.7361839969079" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p24"/>
+      <point x="342.62982984811254" y="389.0150310810961" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p25"/>
+      <point x="377.97435897435895" y="278.0" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p26"/>
+      <point x="200.80806779979392" y="278.0" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p27"/>
+      <point x="193.2121934607446" y="268.6247807856936" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p28"/>
+      <point x="159.70482601627896" y="249.76977017487917" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p29"/>
+      <point x="134.68164197308445" y="217.1957847512399" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p30"/>
+      <point x="111.63156487324682" y="199.15826524045448" type="line" identifier="fr-a47e1353fcda18e0c0e1-c0-p31"/>
+    </contour>
+    <contour identifier="fr-918eb48325913e98ad5c-c0">
+      <point x="197.0" y="696.0" type="line" identifier="fr-918eb48325913e98ad5c-c0-p0"/>
+      <point x="201.317138671875" y="690.4501953125" type="line" identifier="fr-918eb48325913e98ad5c-c0-p1"/>
+      <point x="204.912109375" y="684.3203125" type="line" identifier="fr-918eb48325913e98ad5c-c0-p2"/>
+      <point x="207.812744140625" y="677.6396484375" type="line" identifier="fr-918eb48325913e98ad5c-c0-p3"/>
+      <point x="210.046875" y="670.4375" type="line" identifier="fr-918eb48325913e98ad5c-c0-p4"/>
+      <point x="212.626953125" y="654.5859375" type="line" identifier="fr-918eb48325913e98ad5c-c0-p5"/>
+      <point x="212.7084752043471" y="648.8062146461309" type="line" identifier="fr-918eb48325913e98ad5c-c0-p6"/>
+      <point x="227.2245517111763" y="632.863970371109" type="line" identifier="fr-918eb48325913e98ad5c-c0-p7"/>
+      <point x="236.12150635037943" y="601.8949344888958" type="line" identifier="fr-918eb48325913e98ad5c-c0-p8"/>
+      <point x="251.91377727895795" y="565.309404701665" type="line" identifier="fr-918eb48325913e98ad5c-c0-p9"/>
+      <point x="254.37848312623885" y="531.1660119333916" type="line" identifier="fr-918eb48325913e98ad5c-c0-p10"/>
+      <point x="259.15991913865327" y="488.4797574159598" type="line" identifier="fr-918eb48325913e98ad5c-c0-p11"/>
+      <point x="282.6666666666667" y="559.0" type="line" identifier="fr-918eb48325913e98ad5c-c0-p12"/>
+      <point x="288.5106837606838" y="559.0" type="line" identifier="fr-918eb48325913e98ad5c-c0-p13"/>
+      <point x="342.62982984811254" y="389.0150310810961" type="line" identifier="fr-918eb48325913e98ad5c-c0-p14"/>
+      <point x="373.41277276793494" y="372.7361839969079" type="line" identifier="fr-918eb48325913e98ad5c-c0-p15"/>
+      <point x="400.8397653694717" y="382.628312121259" type="line" identifier="fr-918eb48325913e98ad5c-c0-p16"/>
+      <point x="445.1959779366975" y="366.4233697584579" type="line" identifier="fr-918eb48325913e98ad5c-c0-p17"/>
+      <point x="468.74122019916274" y="354.1461383584445" type="line" identifier="fr-918eb48325913e98ad5c-c0-p18"/>
+      <point x="483.39080607975006" y="351.15892436992857" type="line" identifier="fr-918eb48325913e98ad5c-c0-p19"/>
+      <point x="424.14834203347175" y="532.8578783442682" type="line" identifier="fr-918eb48325913e98ad5c-c0-p20"/>
+      <point x="420.8269057180674" y="536.5741308525668" type="line" identifier="fr-918eb48325913e98ad5c-c0-p21"/>
+      <point x="388.1074327749587" y="565.7022389955551" type="line" identifier="fr-918eb48325913e98ad5c-c0-p22"/>
+      <point x="361.8811743786846" y="596.2270123561357" type="line" identifier="fr-918eb48325913e98ad5c-c0-p23"/>
+      <point x="324.2200766362646" y="620.8355400726855" type="line" identifier="fr-918eb48325913e98ad5c-c0-p24"/>
+      <point x="293.73653091814543" y="625.0954506500549" type="line" identifier="fr-918eb48325913e98ad5c-c0-p25"/>
+      <point x="259.79041543589756" y="669.5189274503123" type="line" identifier="fr-918eb48325913e98ad5c-c0-p26"/>
+      <point x="222.6342415426492" y="701.4432646836448" type="line" identifier="fr-918eb48325913e98ad5c-c0-p27"/>
+      <point x="197.0" y="703.0" type="line" identifier="fr-918eb48325913e98ad5c-c0-p28"/>
+    </contour>
+    <contour identifier="fr-cbb15e4a96d2d6672b3c-c0">
+      <point x="222.6342415426492" y="701.4432646836448" type="line" identifier="fr-cbb15e4a96d2d6672b3c-c0-p0"/>
+      <point x="259.79041543589756" y="669.5189274503123" type="line" identifier="fr-cbb15e4a96d2d6672b3c-c0-p1"/>
+      <point x="293.73653091814543" y="625.0954506500549" type="line" identifier="fr-cbb15e4a96d2d6672b3c-c0-p2"/>
+      <point x="324.2200766362646" y="620.8355400726855" type="line" identifier="fr-cbb15e4a96d2d6672b3c-c0-p3"/>
+      <point x="361.8811743786846" y="596.2270123561357" type="line" identifier="fr-cbb15e4a96d2d6672b3c-c0-p4"/>
+      <point x="388.1074327749587" y="565.7022389955551" type="line" identifier="fr-cbb15e4a96d2d6672b3c-c0-p5"/>
+      <point x="420.8269057180674" y="536.5741308525668" type="line" identifier="fr-cbb15e4a96d2d6672b3c-c0-p6"/>
+      <point x="424.14834203347175" y="532.8578783442682" type="line" identifier="fr-cbb15e4a96d2d6672b3c-c0-p7"/>
+      <point x="371.6274263128737" y="693.9415807499014" type="line" identifier="fr-cbb15e4a96d2d6672b3c-c0-p8"/>
+      <point x="369.0" y="702.0" type="line" identifier="fr-cbb15e4a96d2d6672b3c-c0-p9"/>
+      <point x="359.3721212463243" y="701.603345819137" type="line" identifier="fr-cbb15e4a96d2d6672b3c-c0-p10"/>
+      <point x="335.625" y="700.625" type="line" identifier="fr-cbb15e4a96d2d6672b3c-c0-p11"/>
+      <point x="285.0" y="700.0" type="line" identifier="fr-cbb15e4a96d2d6672b3c-c0-p12"/>
+      <point x="227.875" y="701.125" type="line" identifier="fr-cbb15e4a96d2d6672b3c-c0-p13"/>
+    </contour>
+    <contour identifier="fr-51da6148b7b3bb5e714b-c0">
+      <point x="242.34241542542472" y="218.98160265985626" type="line" identifier="fr-51da6148b7b3bb5e714b-c0-p0"/>
+      <point x="262.94809423890877" y="203.0" type="line" identifier="fr-51da6148b7b3bb5e714b-c0-p1"/>
+      <point x="401.8525641025641" y="203.0" type="line" identifier="fr-51da6148b7b3bb5e714b-c0-p2"/>
+      <point x="420.0" y="146.0" type="line" identifier="fr-51da6148b7b3bb5e714b-c0-p3"/>
+      <point x="430.0625" y="111.59765625" type="line" identifier="fr-51da6148b7b3bb5e714b-c0-p4"/>
+      <point x="436.1875" y="83.03125" type="line" identifier="fr-51da6148b7b3bb5e714b-c0-p5"/>
+      <point x="436.43047918987793" y="81.11706482001756" type="line" identifier="fr-51da6148b7b3bb5e714b-c0-p6"/>
+      <point x="469.0956285608806" y="97.3677422676126" type="line" identifier="fr-51da6148b7b3bb5e714b-c0-p7"/>
+      <point x="507.6779656234552" y="108.15369176431565" type="line" identifier="fr-51da6148b7b3bb5e714b-c0-p8"/>
+      <point x="539.5220857977691" y="102.91200281141111" type="line" identifier="fr-51da6148b7b3bb5e714b-c0-p9"/>
+      <point x="560.3175412107162" y="108.12327086989607" type="line" identifier="fr-51da6148b7b3bb5e714b-c0-p10"/>
+      <point x="563.5159950089703" y="108.92479215348406" type="line" identifier="fr-51da6148b7b3bb5e714b-c0-p11"/>
+      <point x="560.18359375" y="117.72265625" type="line" identifier="fr-51da6148b7b3bb5e714b-c0-p12"/>
+      <point x="548.0" y="153.0" type="line" identifier="fr-51da6148b7b3bb5e714b-c0-p13"/>
+      <point x="504.1292982549008" y="287.55315786625397" type="line" identifier="fr-51da6148b7b3bb5e714b-c0-p14"/>
+      <point x="497.54254397590677" y="286.25402131094614" type="line" identifier="fr-51da6148b7b3bb5e714b-c0-p15"/>
+      <point x="488.76224662737326" y="284.52224192935756" type="line" identifier="fr-51da6148b7b3bb5e714b-c0-p16"/>
+      <point x="458.13184498888614" y="279.72556272095915" type="line" identifier="fr-51da6148b7b3bb5e714b-c0-p17"/>
+      <point x="417.3803565577206" y="265.8368260748478" type="line" identifier="fr-51da6148b7b3bb5e714b-c0-p18"/>
+      <point x="401.5030981373731" y="254.64619036505476" type="line" identifier="fr-51da6148b7b3bb5e714b-c0-p19"/>
+      <point x="334.65407177106385" y="241.298256290379" type="line" identifier="fr-51da6148b7b3bb5e714b-c0-p20"/>
+      <point x="292.1363522617968" y="229.34277053476393" type="line" identifier="fr-51da6148b7b3bb5e714b-c0-p21"/>
+      <point x="251.29086313546182" y="222.7796107529243" type="line" identifier="fr-51da6148b7b3bb5e714b-c0-p22"/>
+    </contour>
+    <contour identifier="fr-fc460a4e67d2d3a3e6a2-c0">
+      <point x="385.0" y="-3.0" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p0"/>
+      <point x="437.875" y="-1.125" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p1"/>
+      <point x="520.0" y="0.0" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p2"/>
+      <point x="594.5" y="-1.125" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p3"/>
+      <point x="633.0" y="-3.0" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p4"/>
+      <point x="633.0" y="4.0" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p5"/>
+      <point x="622.12890625" y="9.08984375" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p6"/>
+      <point x="611.84375" y="17.15625" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p7"/>
+      <point x="601.88671875" y="28.64453125" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p8"/>
+      <point x="592.0" y="44.0" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p9"/>
+      <point x="581.92578125" y="63.66796875" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p10"/>
+      <point x="571.40625" y="88.09375" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p11"/>
+      <point x="565.4464946171923" y="103.82808504301987" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p12"/>
+      <point x="563.5159950089703" y="108.92479215348406" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p13"/>
+      <point x="560.3175412107162" y="108.12327086989607" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p14"/>
+      <point x="539.5220857977691" y="102.91200281141111" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p15"/>
+      <point x="507.6779656234552" y="108.15369176431565" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p16"/>
+      <point x="469.0956285608806" y="97.3677422676126" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p17"/>
+      <point x="436.43047918987793" y="81.11706482001756" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p18"/>
+      <point x="437.744140625" y="70.76806640625" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p19"/>
+      <point x="438.28125" y="59.76171875" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p20"/>
+      <point x="437.787109375" y="49.94482421875" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p21"/>
+      <point x="436.25" y="41.25" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p22"/>
+      <point x="433.658203125" y="33.60986328125" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p23"/>
+      <point x="430.0" y="26.95703125" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p24"/>
+      <point x="425.263671875" y="21.22412109375" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p25"/>
+      <point x="419.4375" y="16.34375" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p26"/>
+      <point x="412.509765625" y="12.24853515625" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p27"/>
+      <point x="404.46875" y="8.87109375" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p28"/>
+      <point x="395.302734375" y="6.14404296875" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p29"/>
+      <point x="385.0" y="4.0" type="line" identifier="fr-fc460a4e67d2d3a3e6a2-c0-p30"/>
+    </contour>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.fracturize.pairRevision</key>
+      <string>dac3392a-99c1-46b6-97f3-302224a46fe3</string>
+      <key>com.fracturize.sourceFingerprint</key>
+      <string>9ae2f8aad0d6a29ff95839b65319432d6705b6e9c3f374ae728d0152887f91a7</string>
+      <key>com.fracturize.stage1.fragments</key>
+      <array>
+        <dict>
+          <key>contourID</key>
+          <string>fr-c351710a62ed66e82ea3-c0</string>
+          <key>fragmentID</key>
+          <string>fr-c351710a62ed66e82ea3</string>
+          <key>isHole</key>
+          <false/>
+          <key>partIndex</key>
+          <integer>0</integer>
+        </dict>
+        <dict>
+          <key>contourID</key>
+          <string>fr-bac066e324b013038ff6-c0</string>
+          <key>fragmentID</key>
+          <string>fr-bac066e324b013038ff6</string>
+          <key>isHole</key>
+          <false/>
+          <key>partIndex</key>
+          <integer>0</integer>
+        </dict>
+        <dict>
+          <key>contourID</key>
+          <string>fr-a47e1353fcda18e0c0e1-c0</string>
+          <key>fragmentID</key>
+          <string>fr-a47e1353fcda18e0c0e1</string>
+          <key>isHole</key>
+          <false/>
+          <key>partIndex</key>
+          <integer>0</integer>
+        </dict>
+        <dict>
+          <key>contourID</key>
+          <string>fr-918eb48325913e98ad5c-c0</string>
+          <key>fragmentID</key>
+          <string>fr-918eb48325913e98ad5c</string>
+          <key>isHole</key>
+          <false/>
+          <key>partIndex</key>
+          <integer>0</integer>
+        </dict>
+        <dict>
+          <key>contourID</key>
+          <string>fr-cbb15e4a96d2d6672b3c-c0</string>
+          <key>fragmentID</key>
+          <string>fr-cbb15e4a96d2d6672b3c</string>
+          <key>isHole</key>
+          <false/>
+          <key>partIndex</key>
+          <integer>0</integer>
+        </dict>
+        <dict>
+          <key>contourID</key>
+          <string>fr-51da6148b7b3bb5e714b-c0</string>
+          <key>fragmentID</key>
+          <string>fr-51da6148b7b3bb5e714b</string>
+          <key>isHole</key>
+          <false/>
+          <key>partIndex</key>
+          <integer>0</integer>
+        </dict>
+        <dict>
+          <key>contourID</key>
+          <string>fr-fc460a4e67d2d3a3e6a2-c0</string>
+          <key>fragmentID</key>
+          <string>fr-fc460a4e67d2d3a3e6a2</string>
+          <key>isHole</key>
+          <false/>
+          <key>partIndex</key>
+          <integer>0</integer>
+        </dict>
+      </array>
+      <key>com.fracturize.topologyDigest</key>
+      <string>09c6efef6d8b7e5a14119e5e6d21399f7a8646f8a11a89870da991e2dd9c24d2</string>
+    </dict>
+  </lib>
+</glyph>

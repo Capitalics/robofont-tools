@@ -1,0 +1,575 @@
+{
+  "complexitySamples": {
+    "10": {
+      "compatible": true,
+      "complexity": 10,
+      "complexityProfile": {
+        "actualFragments": 2,
+        "chipProbability": 0.048,
+        "detailDepth": 1,
+        "edgeIrregularity": 0.14,
+        "minimumArea": 4379.999999999999,
+        "primarySplitCount": 1,
+        "secondaryProbability": 0.122,
+        "targetFragments": 2
+      },
+      "effectiveSeed": 12270504011640599935,
+      "findings": [],
+      "flatteningTolerance": 0.5,
+      "glyph": "O.curve",
+      "normalization": {
+        "applied": false,
+        "cause": "simple source contours",
+        "crossToleranceHausdorffDistance": 0.0,
+        "crossToleranceNormalizedDifference": 0.0,
+        "crossToleranceSymmetricDifference": 0.0,
+        "evenoddArea": 226321.59014621764,
+        "fillRule": "non-zero winding",
+        "maximumAbsoluteWinding": 1,
+        "nonzeroArea": 226321.59014621764,
+        "pointCrossingCount": 0,
+        "primaryFaceCount": 2,
+        "referenceFaceCount": 2,
+        "selfIntersectingContours": [],
+        "windingHistogram": [
+          -1,
+          0
+        ]
+      },
+      "notes": [
+        "Source cubics were adaptively flattened; output contours contain line segments only.",
+        "Complexity changes deterministically regenerate topology; refinement is not nested."
+      ],
+      "reconstruction": {
+        "hausdorffDistance": 7.820177709549433e-10,
+        "intactArea": 226321.59014648327,
+        "normalizedSymmetricDifference": 4.668960910600581e-14,
+        "sourceArea": 226321.5901464911,
+        "symmetricDifferenceArea": 1.0566866576189327e-08
+      }
+    },
+    "25": {
+      "compatible": true,
+      "complexity": 25,
+      "complexityProfile": {
+        "actualFragments": 4,
+        "chipProbability": 0.09000000000000001,
+        "detailDepth": 2,
+        "edgeIrregularity": 0.2,
+        "minimumArea": 3750.0,
+        "primarySplitCount": 2,
+        "secondaryProbability": 0.185,
+        "targetFragments": 4
+      },
+      "effectiveSeed": 18253492377868579910,
+      "findings": [],
+      "flatteningTolerance": 0.5,
+      "glyph": "O.curve",
+      "normalization": {
+        "applied": false,
+        "cause": "simple source contours",
+        "crossToleranceHausdorffDistance": 0.0,
+        "crossToleranceNormalizedDifference": 0.0,
+        "crossToleranceSymmetricDifference": 0.0,
+        "evenoddArea": 226321.59014621764,
+        "fillRule": "non-zero winding",
+        "maximumAbsoluteWinding": 1,
+        "nonzeroArea": 226321.59014621764,
+        "pointCrossingCount": 0,
+        "primaryFaceCount": 2,
+        "referenceFaceCount": 2,
+        "selfIntersectingContours": [],
+        "windingHistogram": [
+          -1,
+          0
+        ]
+      },
+      "notes": [
+        "Source cubics were adaptively flattened; output contours contain line segments only.",
+        "Complexity changes deterministically regenerate topology; refinement is not nested."
+      ],
+      "reconstruction": {
+        "hausdorffDistance": 5.44971197197161e-10,
+        "intactArea": 226321.59014647937,
+        "normalizedSymmetricDifference": 0.0,
+        "sourceArea": 226321.5901464911,
+        "symmetricDifferenceArea": 0.0
+      }
+    },
+    "50": {
+      "compatible": true,
+      "complexity": 50,
+      "complexityProfile": {
+        "actualFragments": 7,
+        "chipProbability": 0.16,
+        "detailDepth": 3,
+        "edgeIrregularity": 0.30000000000000004,
+        "minimumArea": 2699.9999999999995,
+        "primarySplitCount": 4,
+        "secondaryProbability": 0.29,
+        "targetFragments": 8
+      },
+      "effectiveSeed": 5850832560516588938,
+      "findings": [],
+      "flatteningTolerance": 0.5,
+      "glyph": "O.curve",
+      "normalization": {
+        "applied": false,
+        "cause": "simple source contours",
+        "crossToleranceHausdorffDistance": 0.0,
+        "crossToleranceNormalizedDifference": 0.0,
+        "crossToleranceSymmetricDifference": 0.0,
+        "evenoddArea": 226321.59014621764,
+        "fillRule": "non-zero winding",
+        "maximumAbsoluteWinding": 1,
+        "nonzeroArea": 226321.59014621764,
+        "pointCrossingCount": 0,
+        "primaryFaceCount": 2,
+        "referenceFaceCount": 2,
+        "selfIntersectingContours": [],
+        "windingHistogram": [
+          -1,
+          0
+        ]
+      },
+      "notes": [
+        "Source cubics were adaptively flattened; output contours contain line segments only.",
+        "Complexity changes deterministically regenerate topology; refinement is not nested."
+      ],
+      "reconstruction": {
+        "hausdorffDistance": 6.426716975682028e-10,
+        "intactArea": 226321.5901464789,
+        "normalizedSymmetricDifference": 0.0,
+        "sourceArea": 226321.5901464911,
+        "symmetricDifferenceArea": 0.0
+      }
+    },
+    "75": {
+      "compatible": true,
+      "complexity": 75,
+      "complexityProfile": {
+        "actualFragments": 12,
+        "chipProbability": 0.23,
+        "detailDepth": 3,
+        "edgeIrregularity": 0.4,
+        "minimumArea": 1649.9999999999995,
+        "primarySplitCount": 7,
+        "secondaryProbability": 0.395,
+        "targetFragments": 13
+      },
+      "effectiveSeed": 17400789902955648948,
+      "findings": [],
+      "flatteningTolerance": 0.5,
+      "glyph": "O.curve",
+      "normalization": {
+        "applied": false,
+        "cause": "simple source contours",
+        "crossToleranceHausdorffDistance": 0.0,
+        "crossToleranceNormalizedDifference": 0.0,
+        "crossToleranceSymmetricDifference": 0.0,
+        "evenoddArea": 226321.59014621764,
+        "fillRule": "non-zero winding",
+        "maximumAbsoluteWinding": 1,
+        "nonzeroArea": 226321.59014621764,
+        "pointCrossingCount": 0,
+        "primaryFaceCount": 2,
+        "referenceFaceCount": 2,
+        "selfIntersectingContours": [],
+        "windingHistogram": [
+          -1,
+          0
+        ]
+      },
+      "notes": [
+        "Source cubics were adaptively flattened; output contours contain line segments only.",
+        "Complexity changes deterministically regenerate topology; refinement is not nested."
+      ],
+      "reconstruction": {
+        "hausdorffDistance": 8.631098266724464e-10,
+        "intactArea": 226321.59014647396,
+        "normalizedSymmetricDifference": 1.3230607647275383e-13,
+        "sourceArea": 226321.5901464911,
+        "symmetricDifferenceArea": 2.99437216133569e-08
+      }
+    },
+    "90": {
+      "compatible": true,
+      "complexity": 90,
+      "complexityProfile": {
+        "actualFragments": 14,
+        "chipProbability": 0.2720000000000001,
+        "detailDepth": 4,
+        "edgeIrregularity": 0.4600000000000001,
+        "minimumArea": 1019.9999999999997,
+        "primarySplitCount": 8,
+        "secondaryProbability": 0.458,
+        "targetFragments": 16
+      },
+      "effectiveSeed": 9373707753811724682,
+      "findings": [],
+      "flatteningTolerance": 0.5,
+      "glyph": "O.curve",
+      "normalization": {
+        "applied": false,
+        "cause": "simple source contours",
+        "crossToleranceHausdorffDistance": 0.0,
+        "crossToleranceNormalizedDifference": 0.0,
+        "crossToleranceSymmetricDifference": 0.0,
+        "evenoddArea": 226321.59014621764,
+        "fillRule": "non-zero winding",
+        "maximumAbsoluteWinding": 1,
+        "nonzeroArea": 226321.59014621764,
+        "pointCrossingCount": 0,
+        "primaryFaceCount": 2,
+        "referenceFaceCount": 2,
+        "selfIntersectingContours": [],
+        "windingHistogram": [
+          -1,
+          0
+        ]
+      },
+      "notes": [
+        "Source cubics were adaptively flattened; output contours contain line segments only.",
+        "Complexity changes deterministically regenerate topology; refinement is not nested."
+      ],
+      "reconstruction": {
+        "hausdorffDistance": 6.045464282131098e-10,
+        "intactArea": 226321.59014645216,
+        "normalizedSymmetricDifference": 1.9817092551021422e-14,
+        "sourceArea": 226321.5901464911,
+        "symmetricDifferenceArea": 4.485035898227352e-09
+      }
+    }
+  },
+  "decisions": {
+    "componentPolicy": "explicit rejection",
+    "curvePolicy": "adaptive flattening to line segments; no curve preservation",
+    "fillRule": "non-zero winding over noded and polygonized flattened rings",
+    "geometryBackend": "Shapely/GEOS polygon operations",
+    "nestedComplexity": false,
+    "reconstructionAreaTolerance": 1e-08,
+    "reconstructionHausdorffUPMRatio": 1e-07
+  },
+  "environment": {
+    "defcon": "0.10.2",
+    "fontTools": "4.55.3",
+    "geos": "3.13.1",
+    "platform": "macOS-26.5-arm64-arm-64bit",
+    "python": "3.11.0 (v3.11.0:deaf509e8f, Oct 24 2022, 14:43:23) [Clang 13.0.0 (clang-1300.0.29.30)]",
+    "shapely": "2.1.2"
+  },
+  "fixtures": [
+    {
+      "compatible": true,
+      "complexity": 50,
+      "complexityProfile": {
+        "actualFragments": 8,
+        "chipProbability": 0.16,
+        "detailDepth": 3,
+        "edgeIrregularity": 0.30000000000000004,
+        "minimumArea": 2699.9999999999995,
+        "primarySplitCount": 4,
+        "secondaryProbability": 0.29,
+        "targetFragments": 8
+      },
+      "effectiveSeed": 7142995953522559319,
+      "findings": [],
+      "flatteningTolerance": 0.5,
+      "glyph": "H.overlap",
+      "normalization": {
+        "applied": false,
+        "cause": "simple source contours",
+        "crossToleranceHausdorffDistance": 0.0,
+        "crossToleranceNormalizedDifference": 0.0,
+        "crossToleranceSymmetricDifference": 0.0,
+        "evenoddArea": 204400.0,
+        "fillRule": "non-zero winding",
+        "maximumAbsoluteWinding": 2,
+        "nonzeroArea": 215600.0,
+        "pointCrossingCount": 0,
+        "primaryFaceCount": 5,
+        "referenceFaceCount": 5,
+        "selfIntersectingContours": [],
+        "windingHistogram": [
+          1,
+          1,
+          1,
+          2,
+          2
+        ]
+      },
+      "notes": [
+        "Source cubics were adaptively flattened; output contours contain line segments only.",
+        "Complexity changes deterministically regenerate topology; refinement is not nested."
+      ],
+      "reconstruction": {
+        "hausdorffDistance": 1.1368683772161603e-13,
+        "intactArea": 215600.0,
+        "normalizedSymmetricDifference": 0.0,
+        "sourceArea": 215600.0,
+        "symmetricDifferenceArea": 0.0
+      }
+    },
+    {
+      "compatible": true,
+      "complexity": 50,
+      "complexityProfile": {
+        "actualFragments": 11,
+        "chipProbability": 0.16,
+        "detailDepth": 3,
+        "edgeIrregularity": 0.30000000000000004,
+        "minimumArea": 2699.9999999999995,
+        "primarySplitCount": 6,
+        "secondaryProbability": 0.29,
+        "targetFragments": 11
+      },
+      "effectiveSeed": 515992693150494521,
+      "findings": [],
+      "flatteningTolerance": 0.5,
+      "glyph": "O.counter",
+      "normalization": {
+        "applied": false,
+        "cause": "simple source contours",
+        "crossToleranceHausdorffDistance": 0.0,
+        "crossToleranceNormalizedDifference": 0.0,
+        "crossToleranceSymmetricDifference": 0.0,
+        "evenoddArea": 276000.0,
+        "fillRule": "non-zero winding",
+        "maximumAbsoluteWinding": 1,
+        "nonzeroArea": 276000.0,
+        "pointCrossingCount": 0,
+        "primaryFaceCount": 2,
+        "referenceFaceCount": 2,
+        "selfIntersectingContours": [],
+        "windingHistogram": [
+          0,
+          1
+        ]
+      },
+      "notes": [
+        "Source cubics were adaptively flattened; output contours contain line segments only.",
+        "Complexity changes deterministically regenerate topology; refinement is not nested."
+      ],
+      "reconstruction": {
+        "hausdorffDistance": 2.842170943040401e-14,
+        "intactArea": 276000.0,
+        "normalizedSymmetricDifference": 0.0,
+        "sourceArea": 276000.0,
+        "symmetricDifferenceArea": 0.0
+      }
+    },
+    {
+      "compatible": true,
+      "complexity": 50,
+      "complexityProfile": {
+        "actualFragments": 7,
+        "chipProbability": 0.16,
+        "detailDepth": 3,
+        "edgeIrregularity": 0.30000000000000004,
+        "minimumArea": 2699.9999999999995,
+        "primarySplitCount": 4,
+        "secondaryProbability": 0.29,
+        "targetFragments": 8
+      },
+      "effectiveSeed": 5850832560516588938,
+      "findings": [],
+      "flatteningTolerance": 0.5,
+      "glyph": "O.curve",
+      "normalization": {
+        "applied": false,
+        "cause": "simple source contours",
+        "crossToleranceHausdorffDistance": 0.0,
+        "crossToleranceNormalizedDifference": 0.0,
+        "crossToleranceSymmetricDifference": 0.0,
+        "evenoddArea": 226321.59014621764,
+        "fillRule": "non-zero winding",
+        "maximumAbsoluteWinding": 1,
+        "nonzeroArea": 226321.59014621764,
+        "pointCrossingCount": 0,
+        "primaryFaceCount": 2,
+        "referenceFaceCount": 2,
+        "selfIntersectingContours": [],
+        "windingHistogram": [
+          -1,
+          0
+        ]
+      },
+      "notes": [
+        "Source cubics were adaptively flattened; output contours contain line segments only.",
+        "Complexity changes deterministically regenerate topology; refinement is not nested."
+      ],
+      "reconstruction": {
+        "hausdorffDistance": 6.426716975682028e-10,
+        "intactArea": 226321.5901464789,
+        "normalizedSymmetricDifference": 0.0,
+        "sourceArea": 226321.5901464911,
+        "symmetricDifferenceArea": 0.0
+      }
+    },
+    {
+      "compatible": true,
+      "complexity": 50,
+      "complexityProfile": {
+        "actualFragments": 10,
+        "chipProbability": 0.16,
+        "detailDepth": 3,
+        "edgeIrregularity": 0.30000000000000004,
+        "minimumArea": 2699.9999999999995,
+        "primarySplitCount": 6,
+        "secondaryProbability": 0.29,
+        "targetFragments": 10
+      },
+      "effectiveSeed": 13694739782791065655,
+      "findings": [],
+      "flatteningTolerance": 0.5,
+      "glyph": "nested",
+      "normalization": {
+        "applied": false,
+        "cause": "simple source contours",
+        "crossToleranceHausdorffDistance": 0.0,
+        "crossToleranceNormalizedDifference": 0.0,
+        "crossToleranceSymmetricDifference": 0.0,
+        "evenoddArea": 258700.0,
+        "fillRule": "non-zero winding",
+        "maximumAbsoluteWinding": 1,
+        "nonzeroArea": 258700.0,
+        "pointCrossingCount": 0,
+        "primaryFaceCount": 3,
+        "referenceFaceCount": 3,
+        "selfIntersectingContours": [],
+        "windingHistogram": [
+          0,
+          1,
+          1
+        ]
+      },
+      "notes": [
+        "Source cubics were adaptively flattened; output contours contain line segments only.",
+        "Complexity changes deterministically regenerate topology; refinement is not nested."
+      ],
+      "reconstruction": {
+        "hausdorffDistance": 5.684341886080802e-14,
+        "intactArea": 258700.0,
+        "normalizedSymmetricDifference": 0.0,
+        "sourceArea": 258700.0,
+        "symmetricDifferenceArea": 0.0
+      }
+    },
+    {
+      "compatible": true,
+      "complexity": 50,
+      "complexityProfile": {
+        "actualFragments": 10,
+        "chipProbability": 0.16,
+        "detailDepth": 3,
+        "edgeIrregularity": 0.30000000000000004,
+        "minimumArea": 2699.9999999999995,
+        "primarySplitCount": 6,
+        "secondaryProbability": 0.29,
+        "targetFragments": 10
+      },
+      "effectiveSeed": 17885240945658093866,
+      "findings": [],
+      "flatteningTolerance": 0.5,
+      "glyph": "disconnected",
+      "normalization": {
+        "applied": false,
+        "cause": "simple source contours",
+        "crossToleranceHausdorffDistance": 0.0,
+        "crossToleranceNormalizedDifference": 0.0,
+        "crossToleranceSymmetricDifference": 0.0,
+        "evenoddArea": 264000.0,
+        "fillRule": "non-zero winding",
+        "maximumAbsoluteWinding": 1,
+        "nonzeroArea": 264000.0,
+        "pointCrossingCount": 0,
+        "primaryFaceCount": 2,
+        "referenceFaceCount": 2,
+        "selfIntersectingContours": [],
+        "windingHistogram": [
+          1,
+          1
+        ]
+      },
+      "notes": [
+        "Source cubics were adaptively flattened; output contours contain line segments only.",
+        "Complexity changes deterministically regenerate topology; refinement is not nested."
+      ],
+      "reconstruction": {
+        "hausdorffDistance": 1.1368683772161603e-13,
+        "intactArea": 264000.0,
+        "normalizedSymmetricDifference": 0.0,
+        "sourceArea": 264000.0,
+        "symmetricDifferenceArea": 0.0
+      }
+    },
+    {
+      "compatible": true,
+      "complexity": 50,
+      "complexityProfile": {
+        "actualFragments": 2,
+        "chipProbability": 0.16,
+        "detailDepth": 3,
+        "edgeIrregularity": 0.30000000000000004,
+        "minimumArea": 2699.9999999999995,
+        "primarySplitCount": 1,
+        "secondaryProbability": 0.29,
+        "targetFragments": 2
+      },
+      "effectiveSeed": 1356083197809098807,
+      "findings": [],
+      "flatteningTolerance": 0.5,
+      "glyph": "thin.counter",
+      "normalization": {
+        "applied": false,
+        "cause": "simple source contours",
+        "crossToleranceHausdorffDistance": 0.0,
+        "crossToleranceNormalizedDifference": 0.0,
+        "crossToleranceSymmetricDifference": 0.0,
+        "evenoddArea": 58464.0,
+        "fillRule": "non-zero winding",
+        "maximumAbsoluteWinding": 1,
+        "nonzeroArea": 58464.0,
+        "pointCrossingCount": 0,
+        "primaryFaceCount": 2,
+        "referenceFaceCount": 2,
+        "selfIntersectingContours": [],
+        "windingHistogram": [
+          0,
+          1
+        ]
+      },
+      "notes": [
+        "Source cubics were adaptively flattened; output contours contain line segments only.",
+        "Complexity changes deterministically regenerate topology; refinement is not nested."
+      ],
+      "reconstruction": {
+        "hausdorffDistance": 0.0,
+        "intactArea": 58464.0,
+        "normalizedSymmetricDifference": 0.0,
+        "sourceArea": 58464.0,
+        "symmetricDifferenceArea": 0.0
+      }
+    }
+  ],
+  "stage1Verdict": "viable",
+  "stage1VerdictScope": "polygonal geometry, reconstruction, identity, and structural compatibility proof only",
+  "visualEvaluation": {
+    "artifact": "proof-sheet.svg",
+    "automatedVerdictImpact": "none; these are visual warnings, not structural compatibility failures",
+    "criteria": [
+      "recognisability",
+      "controlled erosion rather than explosion",
+      "absence of regular mosaic appearance",
+      "reasonable density across glyph structures"
+    ],
+    "observations": [
+      "All supported fixtures remain recognisable at the sampled 0%, 50%, and 100% positions.",
+      "The directionally coherent motion reads as a progressive breakup, but some 100% states feel more separated than eroded.",
+      "The rough edge profile replaces long slice edges with short irregular angular facets; the macro layout's single-impact spiderweb bias and occasional triangular chips still need product-level tuning.",
+      "Flattened curved outlines show polygonal faceting under close inspection, as expected from the declared Stage 1 curve policy.",
+      "Fragment density is bounded and broadly comparable, but thin and disconnected fixtures need later visual tuning."
+    ],
+    "status": "human review completed"
+  }
+}

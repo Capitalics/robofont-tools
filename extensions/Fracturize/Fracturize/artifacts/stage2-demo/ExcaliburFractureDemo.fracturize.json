@@ -1,0 +1,388 @@
+{
+  "createdAt": "2026-07-13T13:31:10.394529+00:00",
+  "fontInfoAllowlist": [
+    "unitsPerEm",
+    "ascender",
+    "descender",
+    "xHeight",
+    "capHeight",
+    "familyName",
+    "styleName",
+    "copyright",
+    "glyphOrder"
+  ],
+  "format": "com.fracturize.project",
+  "formatVersion": 1,
+  "generatorVersion": "0.1.0.dev0",
+  "glyphDataAllowlist": [
+    "name",
+    "width",
+    "unicodes",
+    "fragmentIdentifiers",
+    "contourIdentifiers",
+    "pointIdentifiers"
+  ],
+  "motionPolicy": {
+    "algorithmVersion": "architectural-erosion-v2"
+  },
+  "outputs": {
+    "eroded": {
+      "path": "ExcaliburFractureDemo-FractureEroded.ufo",
+      "role": "eroded"
+    },
+    "intact": {
+      "path": "ExcaliburFractureDemo-FractureIntact.ufo",
+      "role": "intact"
+    }
+  },
+  "processedGlyphs": {
+    "A": {
+      "contentDigests": {
+        "eroded": "7cda21e82738462d4a0fa84aa296f0c020ea34b1c4266fb7c1dc11d4f898287f",
+        "intact": "56f2f0bfbf01d5d916ec6a6a79226955890fe8e7ff9adb06d7135b12c77faf68"
+      },
+      "effectiveSeed": 6546799256661564333,
+      "motionAlgorithmVersion": "architectural-erosion-v2",
+      "motionSettings": {
+        "baseline_retention": 0.85,
+        "erosion_amount": 0.67,
+        "large_fragment_movement_multiplier": 0.18,
+        "maximum_baseline_crossing_fraction": 0.12,
+        "maximum_downward_drift_em": 0.025,
+        "maximum_rotation_degrees": 12.0,
+        "medium_fragment_movement_multiplier": 0.55,
+        "minimum_scale": 0.78,
+        "movement_direction_degrees": -58.0,
+        "movement_spread_degrees": 24.0,
+        "small_fragment_movement_multiplier": 1.0
+      },
+      "pairRevision": "dac3392a-99c1-46b6-97f3-302224a46fe3",
+      "sourceFingerprint": "9ae2f8aad0d6a29ff95839b65319432d6705b6e9c3f374ae728d0152887f91a7",
+      "status": "processed",
+      "topologyComplexity": 50,
+      "topologyDigest": "09c6efef6d8b7e5a14119e5e6d21399f7a8646f8a11a89870da991e2dd9c24d2",
+      "topologyPath": "project-data/topology/559aead08264d579.json",
+      "updatedAt": "2026-07-13T13:31:11.613462+00:00"
+    },
+    "H": {
+      "contentDigests": {
+        "eroded": "7cfd136336b419bc23b12ce9399041119ff7e57653a5acdd589012949114ed0d",
+        "intact": "43a4b0146ccc34237960387ee39e52566a796b6c8f19b41585b2dd4eddba5bd6"
+      },
+      "effectiveSeed": 15992536408752749751,
+      "motionAlgorithmVersion": "architectural-erosion-v2",
+      "motionSettings": {
+        "baseline_retention": 0.85,
+        "erosion_amount": 0.67,
+        "large_fragment_movement_multiplier": 0.18,
+        "maximum_baseline_crossing_fraction": 0.12,
+        "maximum_downward_drift_em": 0.025,
+        "maximum_rotation_degrees": 12.0,
+        "medium_fragment_movement_multiplier": 0.55,
+        "minimum_scale": 0.78,
+        "movement_direction_degrees": -58.0,
+        "movement_spread_degrees": 24.0,
+        "small_fragment_movement_multiplier": 1.0
+      },
+      "pairRevision": "0e5f242c-7f2a-4d5f-90d4-6808c3c8eecc",
+      "sourceFingerprint": "8e85f7625c176a17f6d5d012012211895b820d43ea74a9b7a73a0323b83ca7cc",
+      "status": "processed",
+      "topologyComplexity": 50,
+      "topologyDigest": "55b9409222e57534398690285db265cd2095062c18ec392e6aa43ef37a926e37",
+      "topologyPath": "project-data/topology/44bd7ae60f478fae.json",
+      "updatedAt": "2026-07-13T13:31:11.856029+00:00"
+    },
+    "I": {
+      "contentDigests": {
+        "eroded": "81c20eeb527e6c5d563af05ee1488ef5e4d9d08d10aa143af8989efbee722545",
+        "intact": "848ac1adc67c2ec979bb7984c02b67872d3345991361e72076f5345d02076f6a"
+      },
+      "effectiveSeed": 1242537236376364257,
+      "motionAlgorithmVersion": "architectural-erosion-v2",
+      "motionSettings": {
+        "baseline_retention": 0.85,
+        "erosion_amount": 0.67,
+        "large_fragment_movement_multiplier": 0.18,
+        "maximum_baseline_crossing_fraction": 0.12,
+        "maximum_downward_drift_em": 0.025,
+        "maximum_rotation_degrees": 12.0,
+        "medium_fragment_movement_multiplier": 0.55,
+        "minimum_scale": 0.78,
+        "movement_direction_degrees": -58.0,
+        "movement_spread_degrees": 24.0,
+        "small_fragment_movement_multiplier": 1.0
+      },
+      "pairRevision": "00f2c6c9-4f5a-4153-9ed6-d5b277793763",
+      "sourceFingerprint": "ba96f99c052eb1ae9add1d13f94a3da1d6b854d42ec5ab495a2923d1e83ab760",
+      "status": "processed",
+      "topologyComplexity": 50,
+      "topologyDigest": "92e9fc41632482463fa4e902eeee4d0427be2f8b588c5afb44514a8d8ff73230",
+      "topologyPath": "project-data/topology/a83dd0ccbffe39d0.json",
+      "updatedAt": "2026-07-13T13:31:11.892311+00:00"
+    },
+    "M": {
+      "contentDigests": {
+        "eroded": "a97d0c85c3e6848663b9b49c50b5cdf146a8f9f20d3f1da3fe9e0b2d588819b7",
+        "intact": "107e486214d25a13d92a3afd770eafd328c7aea180853de6cf1611359a4001f6"
+      },
+      "effectiveSeed": 15880396224236836175,
+      "motionAlgorithmVersion": "architectural-erosion-v2",
+      "motionSettings": {
+        "baseline_retention": 0.85,
+        "erosion_amount": 0.67,
+        "large_fragment_movement_multiplier": 0.18,
+        "maximum_baseline_crossing_fraction": 0.12,
+        "maximum_downward_drift_em": 0.025,
+        "maximum_rotation_degrees": 12.0,
+        "medium_fragment_movement_multiplier": 0.55,
+        "minimum_scale": 0.78,
+        "movement_direction_degrees": -58.0,
+        "movement_spread_degrees": 24.0,
+        "small_fragment_movement_multiplier": 1.0
+      },
+      "pairRevision": "f9800d5f-158b-47e2-a513-e166762fd6a3",
+      "sourceFingerprint": "4a717c50bccab375a544daed2c46f99c99ed72f35064a5a35370753b8ece1447",
+      "status": "processed",
+      "topologyComplexity": 50,
+      "topologyDigest": "83db087d696eddc5f262e957eda946c52d81d84db447de31d23faeec031f5154",
+      "topologyPath": "project-data/topology/08f271887ce94707.json",
+      "updatedAt": "2026-07-13T13:31:11.689275+00:00"
+    },
+    "O": {
+      "contentDigests": {
+        "eroded": "4b9e7f7c1382ce9ea6d3e5cb9be53417b6eec56e81804386fc5496223fc94735",
+        "intact": "01f178dffb8f931dc321f1a3e3b84c0ad4a3188c7b0140c854edcacf3ba815f3"
+      },
+      "effectiveSeed": 13951468899234939318,
+      "motionAlgorithmVersion": "architectural-erosion-v2",
+      "motionSettings": {
+        "baseline_retention": 0.85,
+        "erosion_amount": 0.67,
+        "large_fragment_movement_multiplier": 0.18,
+        "maximum_baseline_crossing_fraction": 0.12,
+        "maximum_downward_drift_em": 0.025,
+        "maximum_rotation_degrees": 12.0,
+        "medium_fragment_movement_multiplier": 0.55,
+        "minimum_scale": 0.78,
+        "movement_direction_degrees": -58.0,
+        "movement_spread_degrees": 24.0,
+        "small_fragment_movement_multiplier": 1.0
+      },
+      "pairRevision": "9b20b49d-6838-4d63-b2da-758aec5c6459",
+      "sourceFingerprint": "9a1364ed6c7087ac337dbcfbbfbe30fbd0a016073c29af70ffe75d1fea62c277",
+      "status": "processed",
+      "topologyComplexity": 50,
+      "topologyDigest": "45ad6ac34f3669aa477fa50648c5edf2323d826b3fcfad8f57367404b2468f0d",
+      "topologyPath": "project-data/topology/c4694f2e93d5c4e7.json",
+      "updatedAt": "2026-07-13T13:31:11.553568+00:00"
+    },
+    "R": {
+      "contentDigests": {
+        "eroded": "cca6c1adf132dc6c92c3ad53072abd24391324ae458e39db99a2347c6f5e8544",
+        "intact": "cb39df643e998d6652c0d93309f0511d8b36af39925137d2df04b28bb9b89981"
+      },
+      "effectiveSeed": 4529266891844169793,
+      "motionAlgorithmVersion": "architectural-erosion-v2",
+      "motionSettings": {
+        "baseline_retention": 0.85,
+        "erosion_amount": 0.67,
+        "large_fragment_movement_multiplier": 0.18,
+        "maximum_baseline_crossing_fraction": 0.12,
+        "maximum_downward_drift_em": 0.025,
+        "maximum_rotation_degrees": 12.0,
+        "medium_fragment_movement_multiplier": 0.55,
+        "minimum_scale": 0.78,
+        "movement_direction_degrees": -58.0,
+        "movement_spread_degrees": 24.0,
+        "small_fragment_movement_multiplier": 1.0
+      },
+      "pairRevision": "e409d791-f997-4e80-89e2-404ca5309190",
+      "sourceFingerprint": "ca4c3a60162a9c4ccd6eadcff3f8116a9ab00d18a323e01ca461078d39bd0868",
+      "status": "processed",
+      "topologyComplexity": 50,
+      "topologyDigest": "7852978e3b55f21562d2a41a6c6c546e9791c3fd6064d026e4e072d1d9f0e1e8",
+      "topologyPath": "project-data/topology/8c2574892063f995.json",
+      "updatedAt": "2026-07-13T13:31:12.136277+00:00"
+    },
+    "S": {
+      "contentDigests": {
+        "eroded": "156812a0ed57cb4814096637ef9bf2781b61f9320eb532d2cfa296f97a380a3a",
+        "intact": "c917c3921c0a48591f00ccf649ec57f3802856faff905d62eac48c88efe0d34e"
+      },
+      "effectiveSeed": 13589195345970084330,
+      "motionAlgorithmVersion": "architectural-erosion-v2",
+      "motionSettings": {
+        "baseline_retention": 0.85,
+        "erosion_amount": 0.67,
+        "large_fragment_movement_multiplier": 0.18,
+        "maximum_baseline_crossing_fraction": 0.12,
+        "maximum_downward_drift_em": 0.025,
+        "maximum_rotation_degrees": 12.0,
+        "medium_fragment_movement_multiplier": 0.55,
+        "minimum_scale": 0.78,
+        "movement_direction_degrees": -58.0,
+        "movement_spread_degrees": 24.0,
+        "small_fragment_movement_multiplier": 1.0
+      },
+      "pairRevision": "9dfa8631-a464-4496-9249-e3d7562bb769",
+      "sourceFingerprint": "d421890b0634dc8202d5774fe333123907d003a71d549c429d27939ac8fd0a6c",
+      "status": "processed",
+      "topologyComplexity": 50,
+      "topologyDigest": "102fe5dadab106f53396b68087207640e8a379d5a6711260a15f6e9ff0508c8b",
+      "topologyPath": "project-data/topology/8de0b3c47f112c59.json",
+      "updatedAt": "2026-07-13T13:31:11.789377+00:00"
+    },
+    "a": {
+      "contentDigests": {
+        "eroded": "d21d62945f28785d762e93dbf8c387e3704e268b9306453c05d08b17e7f3f7f2",
+        "intact": "baa2fba57899f132fdc535a5046d628b373f21192909f997fc5e404e51f39e86"
+      },
+      "effectiveSeed": 9283398353173126274,
+      "motionAlgorithmVersion": "architectural-erosion-v2",
+      "motionSettings": {
+        "baseline_retention": 0.85,
+        "erosion_amount": 0.67,
+        "large_fragment_movement_multiplier": 0.18,
+        "maximum_baseline_crossing_fraction": 0.12,
+        "maximum_downward_drift_em": 0.025,
+        "maximum_rotation_degrees": 12.0,
+        "medium_fragment_movement_multiplier": 0.55,
+        "minimum_scale": 0.78,
+        "movement_direction_degrees": -58.0,
+        "movement_spread_degrees": 24.0,
+        "small_fragment_movement_multiplier": 1.0
+      },
+      "pairRevision": "1ac96626-dda4-4b0e-85c4-760423364966",
+      "sourceFingerprint": "862cd6562073d41fe96dbeb28392232114798a9ae5539705b419628804939295",
+      "status": "processed",
+      "topologyComplexity": 50,
+      "topologyDigest": "aab365783168781bc7050c04d77883d6b45b79fa9edd1f75796745c979b32304",
+      "topologyPath": "project-data/topology/ca978112ca1bbdca.json",
+      "updatedAt": "2026-07-13T13:31:11.956972+00:00"
+    },
+    "dotaccentcomb": {
+      "contentDigests": {
+        "eroded": "2e78da90397c851c7c2ea6737e48803ad22d2cf17364bd6558641a5c58472efc",
+        "intact": "4e3ccddc4f18da8054fac9a8e683ce19afce9f0879fb5ae57f9390a09e5cc7bd"
+      },
+      "effectiveSeed": 14656787933476136364,
+      "motionAlgorithmVersion": "architectural-erosion-v2",
+      "motionSettings": {
+        "baseline_retention": 0.85,
+        "erosion_amount": 0.67,
+        "large_fragment_movement_multiplier": 0.18,
+        "maximum_baseline_crossing_fraction": 0.12,
+        "maximum_downward_drift_em": 0.025,
+        "maximum_rotation_degrees": 12.0,
+        "medium_fragment_movement_multiplier": 0.55,
+        "minimum_scale": 0.78,
+        "movement_direction_degrees": -58.0,
+        "movement_spread_degrees": 24.0,
+        "small_fragment_movement_multiplier": 1.0
+      },
+      "pairRevision": "f0172add-73fa-453c-bf5d-620bb56bd65d",
+      "sourceFingerprint": "96f6e301aec91ce220d4383dfafb60c774f5106d1aa73b56a63c8bdefdb40c91",
+      "status": "processed",
+      "topologyComplexity": 50,
+      "topologyDigest": "22d01c54bee9a0082d94095b8a1bea89bbc5d3fa16b02b79ff404ce5cd98587c",
+      "topologyPath": "project-data/topology/58dd557ae866e37a.json",
+      "updatedAt": "2026-07-13T13:31:11.717436+00:00"
+    },
+    "eight": {
+      "contentDigests": {
+        "eroded": "dc3108dc26a05559df449b2a98445335a79178b485870b01ef02e1a99ce1fedd",
+        "intact": "cce36ff236028a68efd0f68d292eec68fa84d213d5cf0c2a854d115b0fb9ca1e"
+      },
+      "effectiveSeed": 14090810719252622795,
+      "motionAlgorithmVersion": "architectural-erosion-v2",
+      "motionSettings": {
+        "baseline_retention": 0.85,
+        "erosion_amount": 0.67,
+        "large_fragment_movement_multiplier": 0.18,
+        "maximum_baseline_crossing_fraction": 0.12,
+        "maximum_downward_drift_em": 0.025,
+        "maximum_rotation_degrees": 12.0,
+        "medium_fragment_movement_multiplier": 0.55,
+        "minimum_scale": 0.78,
+        "movement_direction_degrees": -58.0,
+        "movement_spread_degrees": 24.0,
+        "small_fragment_movement_multiplier": 1.0
+      },
+      "pairRevision": "3fc51848-948c-4cf1-aba5-c60ddf55f93c",
+      "sourceFingerprint": "0699399ed05ed61766362c7e6adc54209c02c6bf37c14d8a9d3983cb9ea6caeb",
+      "status": "processed",
+      "topologyComplexity": 50,
+      "topologyDigest": "599ef3a87efebfd20867a4b995a9026ddb9c998467afda0deaf21db168bd9200",
+      "topologyPath": "project-data/topology/c195d2d875623436.json",
+      "updatedAt": "2026-07-13T13:31:12.067611+00:00"
+    },
+    "idotless": {
+      "contentDigests": {
+        "eroded": "dc65521bb381bd1a2edd16e67082e142af80a82ddc2dd0139cac3c16fd48d934",
+        "intact": "c2a66f4196b39a2428b2931a057b7b9c0fb42bfec281f697109c487bd9ee39c1"
+      },
+      "effectiveSeed": 1521778514714126572,
+      "motionAlgorithmVersion": "architectural-erosion-v2",
+      "motionSettings": {
+        "baseline_retention": 0.85,
+        "erosion_amount": 0.67,
+        "large_fragment_movement_multiplier": 0.18,
+        "maximum_baseline_crossing_fraction": 0.12,
+        "maximum_downward_drift_em": 0.025,
+        "maximum_rotation_degrees": 12.0,
+        "medium_fragment_movement_multiplier": 0.55,
+        "minimum_scale": 0.78,
+        "movement_direction_degrees": -58.0,
+        "movement_spread_degrees": 24.0,
+        "small_fragment_movement_multiplier": 1.0
+      },
+      "pairRevision": "d27f39be-1fc5-438e-a552-8f526599e541",
+      "sourceFingerprint": "a17d5917e3f0e90fb025c631cde194b68c471730d97d5906f9e442047faf1756",
+      "status": "processed",
+      "topologyComplexity": 50,
+      "topologyDigest": "6587a5dea20b82189ae7409a706c5450f04d6d19daa758b73ef1d7b9b13945a9",
+      "topologyPath": "project-data/topology/17371c23612fecfe.json",
+      "updatedAt": "2026-07-13T13:31:11.987808+00:00"
+    }
+  },
+  "projectID": "e6762ee8-5081-4537-86ca-8c64bc1c262d",
+  "projectName": "ExcaliburFractureDemo",
+  "savePolicy": {
+    "atomicity": "per glyph pair with ordinary exception rollback",
+    "crashProof": false,
+    "finalRoboFontOwnership": "user-owned RoboFont documents",
+    "outputsMayRemainOpenInRoboFont": true,
+    "phaseAHarness": "file-based detached defcon writes"
+  },
+  "settings": {
+    "baseline_retention": 0.85,
+    "complexity": 50,
+    "erosion_amount": 0.67,
+    "glyph_seed_override": null,
+    "large_fragment_movement_multiplier": 0.18,
+    "maximum_baseline_crossing_fraction": 0.12,
+    "maximum_downward_drift_em": 0.025,
+    "maximum_rotation_degrees": 12.0,
+    "medium_fragment_movement_multiplier": 0.55,
+    "minimum_scale": 0.78,
+    "movement_direction_degrees": -58.0,
+    "movement_spread_degrees": 24.0,
+    "project_seed": "excalibur-stage2-demo",
+    "small_fragment_movement_multiplier": 1.0
+  },
+  "source": {
+    "familyName": "Excalibur",
+    "initialTreeDigest": "e0c3f0d3e0aca5433850bfd8dd6e6abcf13d267e3265ae4e7ebcdf14a1100dc6",
+    "path": "../../fixtures/Excalibur_Headline_1.0_BK_subset.ufo",
+    "styleName": "Headline",
+    "unitsPerEm": 1000.0
+  },
+  "topologyPolicy": {
+    "componentPolicy": "explicit rejection",
+    "curvePolicy": "adaptive polygonal flattening",
+    "fillRule": "non-zero winding",
+    "seedDerivationVersion": "sha256-v1",
+    "topologyVersion": "branching-rough-crack-mesh-v2"
+  },
+  "updatedAt": "2026-07-13T13:31:12.136283+00:00"
+}

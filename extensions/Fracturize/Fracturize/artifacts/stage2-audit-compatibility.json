@@ -1,0 +1,58 @@
+{
+  "auditPhase": "Prompt 2 Phase B read-only audit",
+  "designspace": "stage2-audit.designspace",
+  "fontmake": {
+    "fontmakeVersion": "3.5.1",
+    "ufo2ftVersion": "2.30.0",
+    "buildPassed": true,
+    "temporaryVariableFont": "/tmp/fracturize-audit-build/stage2-audit-VF.ttf",
+    "axisTag": "EROD",
+    "glyphOrderCountIncludingNotdef": 12,
+    "tables": [
+      "GlyphOrder",
+      "HVAR",
+      "OS/2",
+      "STAT",
+      "cmap",
+      "fvar",
+      "glyf",
+      "gvar",
+      "head",
+      "hhea",
+      "hmtx",
+      "loca",
+      "maxp",
+      "name",
+      "post"
+    ]
+  },
+  "serializedUFOCheck": {
+    "reader": "fontTools.ufoLib.UFOReader",
+    "glyphs": 11,
+    "glyphNames": [
+      "A",
+      "H",
+      "I",
+      "M",
+      "O",
+      "R",
+      "S",
+      "a",
+      "dotaccentcomb",
+      "eight",
+      "idotless"
+    ],
+    "totalContours": 66,
+    "totalPoints": 2224,
+    "linePoints": 2224,
+    "offCurvePoints": 0,
+    "metadataMismatches": [],
+    "structureMismatches": [],
+    "identityMismatches": [],
+    "windingMismatches": [],
+    "sampledPositions": [0, 10, 25, 50, 75, 90, 100],
+    "interpolationSelfIntersections": 0,
+    "interpolationZeroArea": 0,
+    "pairCompatible": true
+  }
+}
