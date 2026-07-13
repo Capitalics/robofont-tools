@@ -3,7 +3,7 @@ from __future__ import annotations
 import math
 from collections.abc import Iterable, Sequence
 
-from shapely.geometry import LineString, MultiPolygon, Point, Polygon
+from shapely.geometry import LineString, MultiPolygon, Polygon
 from shapely.ops import polygonize, unary_union
 from shapely.validation import explain_validity
 
@@ -20,7 +20,7 @@ MAX_CROSS_TOLERANCE_NORMALIZED_DIFFERENCE = 0.002
 
 
 class UnsupportedOutlineError(ValueError):
-    """Raised when an outline is outside the declared Stage 1 input contract."""
+    """Raised when an outline is outside the declared polygonal input contract."""
 
 
 def adaptive_flattening_tolerance(units_per_em: float) -> float:
@@ -80,7 +80,9 @@ def flatten_cubic(
 def flatten_outline(outline: GlyphOutline, tolerance: float) -> tuple[tuple[XY, ...], ...]:
     if outline.components:
         names = ", ".join(outline.components)
-        raise UnsupportedOutlineError(f"components are unsupported in Stage 1: {names}")
+        raise UnsupportedOutlineError(
+            f"components require decomposition before polygonal generation: {names}"
+        )
     if not outline.contours:
         raise UnsupportedOutlineError("outline has no contours")
 

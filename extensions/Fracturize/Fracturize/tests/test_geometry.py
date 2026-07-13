@@ -4,7 +4,7 @@ import pytest
 
 from fracturize.core import complexity_profile, derive_effective_seed
 from fracturize import GenerationSettings, generate_pair
-from fracturize.fixtures import component_fixture, line_contour, open_contour_fixture, proof_fixtures
+from test_support.fixtures import component_fixture, line_contour, open_contour_fixture, proof_fixtures
 from fracturize.geometry import (
     UnsupportedOutlineError,
     adaptive_flattening_tolerance,
@@ -52,7 +52,7 @@ def test_nonzero_normalization_preserves_nested_island():
 
 
 def test_components_are_explicitly_rejected():
-    with pytest.raises(UnsupportedOutlineError, match="components are unsupported"):
+    with pytest.raises(UnsupportedOutlineError, match="components require decomposition"):
         flatten_outline(component_fixture(), 0.5)
 
 

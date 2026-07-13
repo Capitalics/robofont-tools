@@ -9,8 +9,7 @@ The root stores:
 - intact and eroded working-font IDs, labels, and most recent saved paths;
 - validated generation and motion settings;
 - topology, seed-derivation, fill, curve, component, and motion policies;
-- processed-glyph and failed-glyph maps;
-- a private-fixture cleanup marker.
+- processed-glyph and failed-glyph maps.
 
 Each processed glyph stores its source fingerprint, both generated-output fingerprints, relative topology path and digest, topology complexity, effective seed, pair revision, component-decomposition decision, motion-algorithm version, and update time.
 

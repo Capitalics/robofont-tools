@@ -292,27 +292,13 @@ class FracturizeWindowController:
             self._report_creation_failure(error)
 
     def _structured_create_log(self, event, **fields):
-        record = {"scope": "create_project", "event": event, **fields}
-        line = "[Fracturize] " + json.dumps(record, default=str, sort_keys=True)
-        print(line, flush=True)
-        self._log(line)
+        self._structured_log("create_project", event, **fields)
 
     def _report_creation_failure(self, error):
-        trace = traceback.format_exc()
-        if trace.strip() == "NoneType: None":
-            trace = "".join(traceback.format_exception(type(error), error, error.__traceback__))
-        print(trace, flush=True)
-        self._log(trace.rstrip())
-        self._structured_create_log(
-            "failure",
-            error_type=type(error).__name__,
-            error=str(error),
-        )
-        message(
-            "Project creation failed",
-            str(error),
-            alertStyle="critical",
-            parentWindow=self.w,
+        self._report_project_failure(
+            scope="create_project",
+            title="Project creation failed",
+            error=error,
         )
 
     def openProjectCallback(self, sender):
@@ -357,24 +343,35 @@ class FracturizeWindowController:
         self._structured_open_log("ui_refresh_end", state=self.w.projectStatus.get())
 
     def _structured_open_log(self, event, **fields):
-        record = {"scope": "open_project", "event": event, **fields}
+        self._structured_log("open_project", event, **fields)
+
+    def _structured_log(self, scope, event, **fields):
+        record = {"scope": scope, "event": event, **fields}
         line = "[Fracturize] " + json.dumps(record, default=str, sort_keys=True)
         print(line, flush=True)
         self._log(line)
 
     def _report_open_failure(self, error):
+        self._report_project_failure(
+            scope="open_project",
+            title="Project open failed",
+            error=error,
+        )
+
+    def _report_project_failure(self, *, scope, title, error):
         trace = traceback.format_exc()
         if trace.strip() == "NoneType: None":
             trace = "".join(traceback.format_exception(type(error), error, error.__traceback__))
         print(trace, flush=True)
         self._log(trace.rstrip())
-        self._structured_open_log(
+        self._structured_log(
+            scope,
             "failure",
             error_type=type(error).__name__,
             error=str(error),
         )
         message(
-            "Project open failed",
+            title,
             str(error),
             alertStyle="critical",
             parentWindow=self.w,

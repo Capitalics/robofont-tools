@@ -145,9 +145,7 @@ Interpolation is direct linear point interpolation between the two master geomet
 
 ## Test fixtures and licensing
 
-All fixtures are generated in Python from rectangles and cubic-circle segments; no external font data is redistributed. They cover overlaps, counters, curved contours, nested counter/island fill, disconnected shapes, a thin counter, components, and an open contour.
-
-Synthetic fixture code and the Excalibur subset are private internal development assets. The Excalibur UFO and generated derivatives must be removed during a later cleanup before any packaging or distribution.
+All fixtures contain original synthetic geometry; no external font data is redistributed. The reproducible UFO built by `scripts/build_regression_fixture.py` covers legitimate multiply-wound overlaps, counters, cubic curves, components, metadata, layers, kerning, groups, features, guidelines, and data-file copying. Small in-memory fixtures additionally cover nested fills, disconnected shapes, thin counters, and malformed/open-contour rejection.
 
 ## Deferred decisions
 
@@ -162,10 +160,10 @@ Synthetic fixture code and the Excalibur subset are private internal development
 ## Stage 3 integration decisions
 
 - The source is the currently open RoboFont UFO at project creation.
-- The two outputs are complete, open, user-owned, initially unsaved duplicates. RoboFont Save / Save As owns their persistence; Fracturize never silently saves or closes them.
-- The live project record is a small versioned `.fracturize.json` beside a sibling topology-data folder. Saved font paths are recorded after RoboFont save notifications.
+- The two outputs are complete, open, user-owned working copies. Project creation writes them beside the chosen project record; later saves remain under normal RoboFont user control.
+- The live project record is a small versioned `.fracturize.json` beside a sibling topology-data folder and records the three font paths and identities.
 - The extension modifies selected default-layer outlines and Fracturize-owned metadata only. Shared font and glyph metadata is validated across the pair.
-- Components require per-glyph confirmation and are decomposed in a detached serialized source copy. The open source remains unchanged.
+- Components are preserved unchanged by default. Optional decomposition is confirmed once per batch and performed in a detached serialized source copy. The open source remains unchanged.
 - A generated-output fingerprint mismatch requires Replace, Keep, or Cancel. There is no merge.
 - RoboFont font access and batch commits remain on the main thread. The UI yields between glyphs rather than moving RoboFont objects to a worker.
 - Output glyph replacement participates in each document's undo mechanism where RoboFont exposes it.
@@ -174,4 +172,4 @@ Synthetic fixture code and the Excalibur subset are private internal development
 - The bundle targets RoboFont 4.6 / Python 3.12 and installs bounded Shapely 2.1.x through RoboFont's package installer when needed.
 - The project remains internal to the private `robofont-tools` repository under an all-rights-reserved notice. No public packaging or distribution work is included.
 
-Still deferred are curve-preserving clipping, crash-atomic multi-document transactions, schema migrations, general relocation recovery, output-outline merging, background geometry work, automatic designspace builds, Glyphs automation, broad compatibility, and fixture cleanup.
+Still deferred are curve-preserving clipping, crash-atomic multi-document transactions, schema migrations, general relocation recovery, output-outline merging, background geometry work, automatic designspace builds, Glyphs automation, and broad compatibility.

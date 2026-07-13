@@ -9,8 +9,8 @@ import fontTools
 import shapely
 
 from fracturize import GenerationSettings, generate_pair
-from fracturize.fixtures import proof_fixtures
-from fracturize.report import write_visual_sheet
+from test_support.fixtures import proof_fixtures
+from test_support.reporting import write_visual_sheet
 from fracturize.ufo import result_summary, write_json_report
 
 

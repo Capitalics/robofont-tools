@@ -31,7 +31,7 @@ This is not Voronoi generation and no global recursive slices are used by the de
 
 ## Real-font comparison
 
-The unchanged Excalibur subset was sampled at complexity 72 with one common comparison seed. Both strategies produced compatible master pairs and complete reconstruction.
+The historical private subset was sampled at complexity 72 with one common comparison seed. It has since been removed; the retained synthetic regression UFO exercises the same overlap, curve, counter, component, and persistence paths.
 
 | Glyph | Recursive fragments | Branching fragments | New compatibility |
 | --- | ---: | ---: | --- |

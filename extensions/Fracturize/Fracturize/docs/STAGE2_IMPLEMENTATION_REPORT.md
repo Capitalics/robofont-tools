@@ -39,7 +39,7 @@ See `PROJECT_FORMAT.md` for the schema, allowlists, fingerprint, ownership, and 
 
 ## Real-font demonstration
 
-The generated demonstration is in `artifacts/stage2-demo/` and uses the unchanged Excalibur subset.
+The historical generated demonstration used an unchanged private font subset. That fixture and its generated artifacts have since been removed and replaced by `tests/fixtures/FracturizeRegression.ufo`.
 
 Workflow executed:
 
@@ -71,9 +71,9 @@ Results:
 Generated artifacts:
 
 - `artifacts/stage2-implementation-report.json`;
-- `artifacts/stage2-demo/ExcaliburFractureDemo.fracturize.json`;
-- `artifacts/stage2-demo/ExcaliburFractureDemo-FractureIntact.ufo`;
-- `artifacts/stage2-demo/ExcaliburFractureDemo-FractureEroded.ufo`;
+- a `.fracturize.json` project record;
+- an intact working UFO;
+- an eroded working UFO;
 - eleven canonical topology JSON records under `project-data/topology/`.
 
 ## Automated tests

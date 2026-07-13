@@ -24,11 +24,11 @@ No fixtures, generated UFOs, artifacts, public packaging, or release machinery a
 
 ## Working-font behavior
 
-Project creation duplicates the current open source font twice through RoboFont/fontParts, opens both duplicates as untitled user documents, verifies that the copy retained complete shared data, adds only private role/identity metadata, and writes the project JSON. The user owns both documents and controls Save / Save As. Fracturize performs no final UFO save.
+Project creation duplicates the current open source font twice through RoboFont/fontParts, writes both working UFOs beside the selected project record, opens them, verifies that the copies retained complete shared data, adds only private role/identity metadata, and writes the project JSON. The user owns both documents and controls subsequent Save / Save As operations.
 
 Processing replaces only selected default-layer contours/components and Fracturize-owned glyph metadata. Ordinary glyph metadata and all font-wide data remain untouched. Pair validation compares glyph sets/order, horizontal and vertical metrics, Unicode values, anchors, guidelines, notes, images, ordinary libs, kerning, groups, features, font info, layer structure and full non-default-layer glyph data, font guidelines, data, and images.
 
-Component glyphs require explicit confirmation and use detached serialization for decomposition. A later output edit is detected by fingerprints and requires Replace, Keep, or Cancel. Motion-only regeneration reads stored topology; complexity or seed changes require explicit topology regeneration.
+Component glyphs remain unchanged by default. Optional decomposition is confirmed once per batch and uses detached serialization. A later output edit is detected by fingerprints and requires Replace, Keep, or Cancel. Motion-only regeneration reads stored topology; complexity or seed changes require explicit topology regeneration.
 
 ## Test results
 
@@ -46,7 +46,7 @@ Final automated run on 2026-07-13:
 | Private fixture inside extension bundle | **none** |
 | Accidental nested Git repository | **removed** |
 
-The new tests cover bundle/menu declarations, lifecycle cleanup, source/selection/name collection, full duplication, outline-only replacement, exact preview geometry, motion/topology separation, seed and complexity invalidation, component confirmation, manual-edit choices, full rollback, hard-error blocking, progressive pair reuse, stale-source handling, per-glyph batch failure, cancellation, project reopen/relink, conflict refusal, strict version-1 schema validation, shared-data mismatch detection, and private-asset exclusion.
+The tests cover bundle/menu declarations, lifecycle cleanup, all four batch-selection modes, full duplication, outline-only replacement, exact preview geometry, motion/topology separation, seed and complexity invalidation, project-level component policy, manual-edit choices, full rollback, hard-error blocking, progressive pair reuse, stale-source handling, per-glyph batch failure, cancellation, project reopen/relink, conflict refusal, strict version-1 schema validation, and shared-data mismatch detection.
 
 ## Actual RoboFont status
 
@@ -73,16 +73,14 @@ The development symlink is already installed locally. Restart RoboFont, choose *
 ## Remaining limitations
 
 1. Curves are adaptively flattened to line contours; original cubic geometry is not preserved.
-2. Component outputs are decomposed after confirmation.
-3. Unsaved output documents cannot be recovered after closing.
-4. Rollback covers ordinary exceptions, not process termination or power failure across open documents.
-5. Edited generated outlines cannot be merged.
-6. General relocation/recovery and schema migrations are absent.
-7. The red preview overlay strokes complete fragment contours, including exterior portions; it is not a provenance-filtered crack-only diagnostic.
-8. Geometry remains synchronous on RoboFont's main thread. The UI yields between glyphs, but a complex individual glyph can temporarily block interaction.
-9. The current visual language retains a single-impact spiderweb bias and needs owner evaluation on the full real project.
-10. Broad compatibility, advanced crack controls, automated variable-font export, Glyphs automation, public packaging, and distribution remain explicitly deferred.
-11. Private Excalibur fixtures and artifacts remain for current validation and require later cleanup.
+2. Component outputs are preserved by default or decomposed after one batch confirmation.
+3. Rollback covers ordinary exceptions, not process termination or power failure across open documents.
+4. Edited generated outlines cannot be merged.
+5. General relocation/recovery and schema migrations are absent.
+6. The red preview overlay strokes complete fragment contours, including exterior portions; it is not a provenance-filtered crack-only diagnostic.
+7. Geometry remains synchronous on RoboFont's main thread. The UI yields between glyphs, but a complex individual glyph can temporarily block interaction.
+8. The current visual language retains a single-impact spiderweb bias and needs owner evaluation on the full real project.
+9. Broad compatibility, advanced crack controls, automated variable-font export, Glyphs automation, public packaging, and distribution remain explicitly deferred.
 
 ## Owner decisions still needed
 
@@ -90,9 +88,7 @@ The development symlink is already installed locally. Restart RoboFont, choose *
 - Choose the routine project-JSON location and Save As naming convention for the two user-owned UFOs.
 - Decide whether the current full-fragment contour overlay is sufficient or whether a later crack-only overlay is worth implementing.
 - Decide when curve-preserving boundary work becomes a priority relative to producing this project's polygonal masters.
-- Schedule removal of the private fixture/artifact corpus before any future sharing or packaging.
 
 ## Readiness
 
-Prompt 3 implementation is complete at the code and automated-validation level. The extension is ready for a **controlled first-use smoke test**, starting with Shapely installation and a synthetic or disposable UFO. Begin real-project production only after the pending RoboFont UI workflow—create, duplicate, preview, process, undo, save, reopen, and edited-output warning—has been exercised manually once in RoboFont 4.6.
-
+Prompt 3 implementation is complete at the code and automated-validation level. The extension should still be exercised manually in RoboFont 4.6 after structural changes, starting with the synthetic regression UFO or another disposable source.

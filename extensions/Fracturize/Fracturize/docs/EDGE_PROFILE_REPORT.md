@@ -44,7 +44,7 @@ Projects recording `recursive-split-v1` or `branching-crack-mesh-v1` continue to
 
 ## Same-layout comparison
 
-The Excalibur sample used one project seed and complexity 72. Every sampled clean and rough pair passed structural compatibility. All rough lines were simple and all semantic intersection graphs matched their clean macro graph.
+The historical private sample used one project seed and complexity 72. It has since been removed and replaced by the synthetic regression UFO. Every sampled clean and rough pair passed structural compatibility. All rough lines were simple and all semantic intersection graphs matched their clean macro graph.
 
 | Glyph | Clean segments | Rough segments | Clean median length | Rough median length | Clean fragments | Rough fragments |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |

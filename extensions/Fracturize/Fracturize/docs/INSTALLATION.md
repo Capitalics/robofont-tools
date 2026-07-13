@@ -26,8 +26,7 @@ Open a source UFO in RoboFont and make its font window current. Choose **Extensi
 The headless suite uses the repository's development environment and the canonical package inside the extension bundle:
 
 ```bash
-PYTHONPATH=Fracturize.roboFontExt/lib python -m pytest -q
+PYTHONPATH=Fracturize.roboFontExt/lib python3 -m pytest -q
 ```
 
-Private Excalibur fixtures and generated artifacts are retained for current validation only. They are not part of the extension bundle and must be removed in a later cleanup before any distribution.
-
+The checked-in regression UFO is original synthetic data produced by `scripts/build_regression_fixture.py`. Generated validation artifacts are disposable and ignored by Git.

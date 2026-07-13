@@ -9,12 +9,12 @@ from .model import CubicSegment, GlyphOutline, LineSegment, SourceContour
 
 
 def defcon_glyph_to_outline(glyph, *, units_per_em: float) -> GlyphOutline:
-    """Convert one defcon glyph to the Stage 1 source model without mutation."""
+    """Convert one defcon glyph to the polygonal source model without mutation."""
 
     if glyph.components:
         component_names = ", ".join(component.baseGlyph for component in glyph.components)
         raise UnsupportedOutlineError(
-            f"components are unsupported in Stage 1: {component_names}"
+            f"components require decomposition before polygonal generation: {component_names}"
         )
 
     contours = []
@@ -93,4 +93,3 @@ def load_ufo_outlines(path: Path):
     }
     font.close()
     return tuple(outlines), tuple(rejected), metadata
-

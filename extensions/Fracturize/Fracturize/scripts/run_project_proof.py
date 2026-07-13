@@ -24,8 +24,9 @@ def tree_digest(path: Path) -> str:
 
 def main():
     root = Path(__file__).resolve().parents[1]
-    source_path = root / "fixtures" / "Excalibur_Headline_1.0_BK_subset.ufo"
+    source_path = root / "tests" / "fixtures" / "FracturizeRegression.ufo"
     artifact_dir = root / "artifacts"
+    artifact_dir.mkdir(parents=True, exist_ok=True)
     demo_dir = artifact_dir / "stage2-demo"
     if demo_dir.exists():
         shutil.rmtree(demo_dir)
@@ -38,8 +39,8 @@ def main():
     project = FractureProject.create(
         demo_dir,
         source_path,
-        project_name="ExcaliburFractureDemo",
-        project_seed="excalibur-stage2-demo",
+        project_name="SyntheticFractureDemo",
+        project_seed="synthetic-stage2-demo",
         complexity=50,
     )
     created_paths = {
@@ -142,7 +143,7 @@ def main():
             "project format version 1 has no migration framework",
             "project relocation and source relinking are deferred",
             "curves remain flattened to polygonal line output",
-            "private Excalibur fixtures and generated artifacts must be removed in a later cleanup before any distribution",
+            "generated validation artifacts are disposable and are not extension resources",
         ],
     }
     write_json_report(report, artifact_dir / "stage2-implementation-report.json")

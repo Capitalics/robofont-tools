@@ -4,17 +4,17 @@
 
 1. Open the static source UFO in RoboFont and make it current.
 2. Open **Extensions → Fracturize** and choose **Create Project**.
-3. Choose a location for the small `.fracturize.json` record. Existing project files are refused rather than overwritten.
-4. Fracturize creates two complete, untitled duplicates of the current source and opens both as ordinary RoboFont documents.
-5. Save the intact and eroded documents wherever and whenever you choose with RoboFont's normal **Save / Save As** commands.
+3. Choose a name and location for the `.fracturize.json` record. Existing project or working-font destinations are refused rather than overwritten.
+4. Fracturize writes complete `-Intact.ufo` and `-Eroded.ufo` copies in that folder and opens both as ordinary RoboFont documents.
+5. Continue saving the working documents with RoboFont's normal **Save / Save As** commands when you choose.
 
-The duplicates initially preserve the complete source: all glyphs and layers, glyph order, metrics, Unicode values, anchors, notes, guidelines, kerning, groups, features, font info, libs, data, and images. Fracturize adds private identity metadata to distinguish the intact and eroded documents. It never saves the working fonts itself.
+The copies initially preserve the complete source: all glyphs and layers, glyph order, metrics, Unicode values, anchors, notes, guidelines, kerning, groups, features, font info, libs, data, and images. Fracturize adds private identity metadata to distinguish the intact and eroded documents. Project creation performs the initial writes; normal editing and subsequent saves remain user-controlled.
 
-Keep the source, intact, and eroded documents open while processing. If an unsaved working document is closed, it cannot be recovered from a file path; reopen the project only after both working fonts have been saved at least once.
+Keep the source, intact, and eroded documents open while processing. **Open Project** first matches open documents by identity and otherwise opens the recorded paths.
 
 ## Select and preview glyphs
 
-Choose the current glyph, the font-window selection, and/or type a whitespace- or comma-separated glyph-name list. Duplicate names are collapsed.
+Choose exactly one batch source: current glyph, font-window selection, whitespace-separated manual glyph list, or all glyphs in source order. Duplicate names are collapsed while preserving order.
 
 **Fracture Complexity** changes topology and therefore requires **Regenerate Topology** for an already processed glyph. The optional seed override also changes topology. Motion controls update the exact matched-geometry preview without changing stored outlines; commit them with **Regenerate Motion**.
 
@@ -31,7 +31,7 @@ The preview shows the intact master, a direct point interpolation, and the erode
 
 Each successful operation replaces only the selected glyph's contours and components in the two working fonts. Width, Unicode values, anchors, notes, guidelines, image, ordinary glyph lib data, and all font-wide data remain untouched. Generated outlines are polygonal line contours because the current backend adaptively flattens source curves.
 
-Glyphs containing components require explicit confirmation. If accepted, Fracturize decomposes a detached copy for generation and writes decomposed contours to both working fonts; the source glyph remains unchanged. If declined, the glyph is skipped.
+With **Decompose components before processing** off, component glyphs are left unchanged in both complete working copies and reported as `component preserved`; they inherit changes through any processed base glyphs. With it on, Fracturize asks once before the batch, decomposes detached source copies for generation, and writes decomposed contours to both working fonts. The open source remains unchanged.
 
 ## Manual edits and undo
 
@@ -49,14 +49,12 @@ Do not independently alter widths, kerning, groups, features, font info, layers,
 
 Choose **Open Project** and select the `.fracturize.json` file. Fracturize first matches already open fonts by private identity, then opens recorded saved paths when available. Processing stops if the source or either working font is missing, unreadable, closed, or mismatched. It does not recreate a missing side or silently relink a different font.
 
-The project record stores settings, algorithm versions, identities, per-glyph topology paths, seeds, source fingerprints, output fingerprints, and processed/failed state. It does not own or save the output documents.
+The project record stores settings, algorithm versions, identities, per-glyph topology paths, seeds, source fingerprints, output fingerprints, and processed/failed state. It identifies the working documents but does not make them plugin-owned.
 
 ## Current limitations
 
 - Curves are adaptively flattened and generated contours are line-only.
-- Selected components are decomposed, not preserved as components.
+- Component glyphs are either preserved unchanged or explicitly decomposed for a batch.
 - Ordinary Python exceptions roll back the live pair and project state, but machine termination is not a crash-atomic multi-document transaction.
-- Unsaved working fonts cannot be reopened after they are closed.
 - Project relocation recovery, schema migration, edited-outline merging, background processing, automatic designspace building, and Glyphs automation are deferred.
 - The fracture style retains a single-impact spiderweb bias; final visual tuning remains project-specific.
-

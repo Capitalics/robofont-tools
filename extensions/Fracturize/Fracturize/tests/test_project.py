@@ -33,9 +33,9 @@ from fracturize.ufo import read_master
 
 
 SOURCE_FIXTURE = (
-    Path(__file__).resolve().parents[1]
+    Path(__file__).resolve().parent
     / "fixtures"
-    / "Excalibur_Headline_1.0_BK_subset.ufo"
+    / "FracturizeRegression.ufo"
 )
 
 
@@ -49,7 +49,7 @@ def create_project(tmp_path: Path) -> FractureProject:
     return FractureProject.create(
         tmp_path / "project",
         copy_source(tmp_path),
-        project_name="ExcaliburFracture",
+        project_name="SyntheticFracture",
         project_seed="stage2-test-seed",
         complexity=50,
     )
@@ -74,7 +74,7 @@ def test_project_creation_writes_one_empty_identified_ufo_pair_and_json(tmp_path
         assert font.lib[OUTPUT_ROLE_KEY] == role
         assert len(font) == 0
         assert font.info.unitsPerEm == 1000
-        assert font.info.familyName == "Excalibur"
+        assert font.info.familyName == "Fracturize Regression"
         assert not font.features.text
         assert not font.groups
         assert not font.kerning
@@ -87,7 +87,7 @@ def test_project_creation_refuses_conflicting_paths(tmp_path):
         FractureProject.create(
             project.directory,
             project.source_path,
-            project_name="ExcaliburFracture",
+            project_name="SyntheticFracture",
             project_seed="another",
         )
 
@@ -251,7 +251,7 @@ def test_failed_stale_regeneration_preserves_previous_pair(tmp_path):
     source.close()
 
     assert project.glyph_status("O") == "source-unavailable"
-    with pytest.raises(UnsupportedOutlineError, match="components are unsupported"):
+    with pytest.raises(UnsupportedOutlineError, match="components require decomposition"):
         project.regenerate_topology("O")
     assert read_master(project.intact_path, "O") == intact_before
     assert read_master(project.eroded_path, "O") == eroded_before
@@ -261,7 +261,7 @@ def test_failed_stale_regeneration_preserves_previous_pair(tmp_path):
 
 def test_component_policy_is_explicit_and_does_not_advance_project(tmp_path):
     project = create_project(tmp_path)
-    with pytest.raises(UnsupportedOutlineError, match="components are unsupported"):
+    with pytest.raises(UnsupportedOutlineError, match="components require decomposition"):
         project.process_glyph("i")
     assert "i" not in project.data["processedGlyphs"]
     for path in (project.intact_path, project.eroded_path):

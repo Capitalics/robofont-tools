@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from fracturize import GenerationSettings, generate_pair
-from fracturize.fixtures import proof_fixtures
+from test_support.fixtures import proof_fixtures
 from fracturize.geometry import flatten_outline, master_contours_to_union, visible_filled_union
 from fracturize.ufo import read_master, write_temporary_pair
 from fracturize.validation import validate_pair

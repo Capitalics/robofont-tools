@@ -13,7 +13,7 @@ import shapely
 from fracturize import GenerationSettings, generate_pair
 from fracturize.geometry import normalize_outline
 from fracturize.input_ufo import load_ufo_outlines
-from fracturize.report import write_visual_sheet
+from test_support.reporting import write_visual_sheet
 from fracturize.ufo import read_master, result_summary, write_json_report, write_validation_pair
 from fracturize.validation import validate_pair
 
@@ -32,11 +32,12 @@ def main():
     parser = argparse.ArgumentParser(description="Run Stage 1 against a read-only source UFO")
     parser.add_argument("source_ufo", type=Path)
     parser.add_argument("--complexity", type=int, default=50)
-    parser.add_argument("--project-seed", default="excalibur-real-font-proof")
+    parser.add_argument("--project-seed", default="synthetic-ufo-validation")
     args = parser.parse_args()
 
     root = Path(__file__).resolve().parents[1]
     artifact_dir = root / "artifacts"
+    artifact_dir.mkdir(parents=True, exist_ok=True)
     source_path = args.source_ufo.resolve()
     if not source_path.is_dir():
         raise SystemExit(f"source UFO not found: {source_path}")
@@ -156,26 +157,6 @@ def main():
             },
         }
 
-    previous_comparison = None
-    if source_path.name == "Excalibur_Headline_1.0_BK_subset.ufo":
-        previous = {
-            "processed": 7,
-            "failed": 4,
-            "rejected": 1,
-            "incompatible": 0,
-        }
-        current = {
-            "processed": len(results),
-            "failed": len(failed),
-            "rejected": len(rejected),
-            "incompatible": len(incompatible),
-        }
-        previous_comparison = {
-            "baseline": "run before bounded overlap normalization",
-            "previous": previous,
-            "current": current,
-            "delta": {key: current[key] - previous[key] for key in previous},
-        }
     report = {
         "environment": {
             "python": sys.version,
@@ -221,7 +202,6 @@ def main():
             "otherwise": "generation fails explicitly; the outline is not silently repaired",
         },
         "overlapNormalizationInvestigation": overlap_investigation,
-        "comparisonToPreviousRun": previous_comparison,
         "glyphs": [result_summary(result) for result in results],
         "serializedUFOValidation": serialized_validation,
         "artifacts": {

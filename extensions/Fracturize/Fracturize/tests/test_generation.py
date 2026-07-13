@@ -20,7 +20,7 @@ from fracturize.core import (
     generate_topology,
     regenerate_motion_from_topology,
 )
-from fracturize.fixtures import component_fixture, proof_fixtures
+from test_support.fixtures import component_fixture, proof_fixtures
 from fracturize.geometry import (
     UnsupportedOutlineError,
     adaptive_flattening_tolerance,

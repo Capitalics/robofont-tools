@@ -526,44 +526,6 @@ def _roughen_crack_mesh_once(
     return tuple(roughened)
 
 
-def roughen_crack_mesh(
-    macro_lines: tuple[LineString, ...],
-    profile: ComplexityProfile,
-    seed: int,
-    upm: float,
-    *,
-    parameters: EdgeProfileParameters | None = None,
-) -> tuple[LineString, ...]:
-    """Roughen a mesh without changing its semantic intersection graph."""
-    parameters = parameters or edge_profile_parameters(profile.value, upm)
-    macro_graph = _mesh_incidence_graph(macro_lines)
-    # Preserve detail density while progressively reducing only lateral
-    # displacement when a dense web would otherwise create a new crossing.
-    # The extra bounded attempts avoid dropping all the way back to clean macro
-    # lines at high detail values.
-    for global_attempt in range(8):
-        scaled = replace(
-            parameters,
-            lateral_deviation_amplitude=(
-                parameters.lateral_deviation_amplitude * 0.5**global_attempt
-            ),
-            simplification_threshold=(
-                parameters.simplification_threshold * 0.5**global_attempt
-            ),
-        )
-        candidate = _roughen_crack_mesh_once(
-            macro_lines,
-            profile,
-            seed,
-            upm,
-            parameters=scaled,
-        )
-        candidate_graph = _mesh_incidence_graph(candidate)
-        if candidate_graph == macro_graph:
-            return candidate
-    return macro_lines
-
-
 def generate_crack_mesh(
     silhouette,
     profile: ComplexityProfile,

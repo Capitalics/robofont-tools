@@ -120,7 +120,7 @@ These are visual warnings. They do not change the structural compatibility resul
 
 The central polygonal reconstruction and compatibility model remains proven. The post-Stage-2 topology enhancement also demonstrates that the fracture language can be replaced behind the fragment contract without changing persistence, compatibility, UFO, or motion architecture. See `TOPOLOGY_GENERATOR_REPORT.md` for the current comparison and boundary-provenance findings.
 
-## Excalibur overlap investigation
+## Historical private-font overlap investigation
 
 The first real-font run processed 7 glyphs, rejected component glyph `i`, and failed `A`, `M`, `R`, and `eight` because the original normalization gate rejected every self-intersecting ring.
 

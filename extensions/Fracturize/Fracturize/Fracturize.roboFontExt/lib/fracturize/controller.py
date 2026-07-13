@@ -7,7 +7,6 @@ import math
 from pathlib import Path
 
 from .live_project import (
-    EditedOutputError,
     LiveFractureProject,
     LiveProjectError,
     LiveProjectIntegrityError,
@@ -295,50 +294,51 @@ class FracturizeController:
             raise LiveProjectError("create or open a project first")
         self.project.update_settings(**changes)
 
+    @staticmethod
+    def _normalize_topology_slider(raw_value, label):
+        if isinstance(raw_value, bool) or not isinstance(raw_value, (int, float)):
+            raise LiveProjectError(f"{label} slider value must be a finite number")
+        if not math.isfinite(raw_value):
+            raise LiveProjectError(f"{label} slider value must be finite")
+        normalized = int(round(raw_value))
+        if not 0 <= normalized <= 100:
+            raise LiveProjectError(f"{label} slider value must be in the range 0..100")
+        return normalized
+
+    def _set_topology_slider(self, setting_name, result_key, raw_value, *, glyph_name=None):
+        if self.project is None:
+            raise LiveProjectError("create or open a project first")
+        label = setting_name.replace("_", " ")
+        normalized = self._normalize_topology_slider(raw_value, label)
+        previous = getattr(self.project.settings, setting_name)
+        self.project.update_settings(**{setting_name: normalized})
+        status = self.project.glyph_status(glyph_name) if glyph_name else None
+        return {
+            "previous": previous,
+            result_key: normalized,
+            "glyphStatus": status,
+            "topologyStale": status == "topology-outdated",
+        }
+
     def set_complexity_from_slider(self, raw_value, *, glyph_name=None):
         """Normalize one UI slider value and persist it as project complexity."""
 
-        if isinstance(raw_value, bool) or not isinstance(raw_value, (int, float)):
-            raise LiveProjectError("complexity slider value must be a finite number")
-        if not math.isfinite(raw_value):
-            raise LiveProjectError("complexity slider value must be finite")
-        normalized = int(round(raw_value))
-        if not 0 <= normalized <= 100:
-            raise LiveProjectError("complexity slider value must be in the range 0..100")
-        if self.project is None:
-            raise LiveProjectError("create or open a project first")
-        previous = self.project.settings.complexity
-        self.project.update_settings(complexity=normalized)
-        status = self.project.glyph_status(glyph_name) if glyph_name else None
-        stale = status == "topology-outdated"
-        return {
-            "previous": previous,
-            "complexity": normalized,
-            "glyphStatus": status,
-            "topologyStale": stale,
-        }
+        return self._set_topology_slider(
+            "complexity",
+            "complexity",
+            raw_value,
+            glyph_name=glyph_name,
+        )
 
     def set_rock_edge_detail_from_slider(self, raw_value, *, glyph_name=None):
         """Normalize and persist the topology-only micro-edge control."""
 
-        if isinstance(raw_value, bool) or not isinstance(raw_value, (int, float)):
-            raise LiveProjectError("rock edge detail slider value must be a finite number")
-        if not math.isfinite(raw_value):
-            raise LiveProjectError("rock edge detail slider value must be finite")
-        normalized = int(round(raw_value))
-        if not 0 <= normalized <= 100:
-            raise LiveProjectError("rock edge detail slider value must be in the range 0..100")
-        if self.project is None:
-            raise LiveProjectError("create or open a project first")
-        previous = self.project.settings.rock_edge_detail
-        self.project.update_settings(rock_edge_detail=normalized)
-        status = self.project.glyph_status(glyph_name) if glyph_name else None
-        return {
-            "previous": previous,
-            "rockEdgeDetail": normalized,
-            "glyphStatus": status,
-            "topologyStale": status == "topology-outdated",
-        }
+        return self._set_topology_slider(
+            "rock_edge_detail",
+            "rockEdgeDetail",
+            raw_value,
+            glyph_name=glyph_name,
+        )
 
     def preview(self, glyph_name, *, regenerate_topology=False, decompose_components=False):
         if self.project is None:

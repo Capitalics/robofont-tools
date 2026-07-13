@@ -23,9 +23,9 @@ from .core import (
     regenerate_motion_from_topology,
 )
 from .geometry import master_contours_to_union
+from .fingerprints import glyph_content_digest, source_fingerprint
 from .input_ufo import defcon_glyph_to_outline
 from .model import GenerationResult, GenerationSettings, MasterGlyph
-from .project import glyph_content_digest, source_fingerprint
 from .topology import read_topology, topology_digest, write_topology
 from .ufo import LIB_KEY, master_from_glyph
 from .validation import validate_pair
@@ -302,11 +302,6 @@ def shared_font_data(font):
     }
 
 
-def shared_font_digest(font):
-    payload = json.dumps(shared_font_data(font), sort_keys=True, default=str, separators=(",", ":"))
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
-
-
 def validate_working_font_pair(intact_font, eroded_font):
     first = shared_font_data(intact_font)
     second = shared_font_data(eroded_font)
@@ -460,12 +455,11 @@ class LiveFractureProject:
                 "seedDerivationVersion": SEED_DERIVATION_VERSION,
                 "fillRule": "non-zero winding",
                 "curvePolicy": "adaptive polygonal flattening",
-                "componentPolicy": "confirm before decomposition",
+                "componentPolicy": "preserve or confirm once per decomposed batch",
             },
             "motionPolicy": {"algorithmVersion": MOTION_ALGORITHM_VERSION},
             "processedGlyphs": {},
             "failedGlyphs": {},
-            "privateFixtureCleanupRequired": True,
         }
         project = cls(path, data, source_font, intact_font, eroded_font)
         project._save()

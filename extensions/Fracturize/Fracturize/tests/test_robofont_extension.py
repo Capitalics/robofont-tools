@@ -26,7 +26,7 @@ from fracturize.ufo import master_from_glyph
 
 ROOT = Path(__file__).resolve().parents[1]
 BUNDLE = ROOT / "Fracturize.roboFontExt"
-SOURCE_FIXTURE = ROOT / "fixtures" / "Excalibur_Headline_1.0_BK_subset.ufo"
+SOURCE_FIXTURE = ROOT / "tests" / "fixtures" / "FracturizeRegression.ufo"
 
 
 class FakeEnvironment:
@@ -170,7 +170,7 @@ def enriched_source():
     source.kerning[("A", "O")] = -37
     source.features.text = "feature kern { pos A O -37; } kern;"
     source.lib["com.example.privateData"] = {"preserve": True}
-    source.data["com.example/readme.txt"] = b"private fixture data"
+    source.data["com.example/readme.txt"] = b"synthetic fixture data"
     source.glyphOrder = list(source.keys())
     anchor = source["O"].instantiateAnchor()
     anchor.name = "top"
@@ -234,9 +234,9 @@ def test_window_source_registers_and_cleans_up_observers():
     assert "regenerate_topology=True" in source
 
 
-def test_private_real_font_assets_are_outside_the_extension_bundle():
+def test_regression_ufo_is_outside_the_extension_bundle():
     assert not list(BUNDLE.rglob("*.ufo"))
-    assert not list(BUNDLE.rglob("*Excalibur*"))
+    assert (ROOT / "tests" / "fixtures" / "FracturizeRegression.ufo").is_dir()
 
 
 def test_glyph_collection_combines_current_selection_and_direct_names():
@@ -384,7 +384,7 @@ def test_project_creation_writes_and_opens_complete_named_working_fonts(live_con
     assert project.intact_font.lib[FONT_ID_KEY]
     assert project.eroded_font.lib[FONT_ID_KEY]
     assert project.intact_font.lib[FONT_ID_KEY] != project.eroded_font.lib[FONT_ID_KEY]
-    assert project.intact_font.data["com.example/readme.txt"] == b"private fixture data"
+    assert project.intact_font.data["com.example/readme.txt"] == b"synthetic fixture data"
     assert project.data["workingFonts"]["intact"]["path"] == str(project.intact_font.path)
     assert controller.project is project
     assert project.fonts_available
@@ -906,7 +906,8 @@ def test_open_project_invalid_path_raises_and_ui_has_clear_failure_path(live_con
         controller.open_project(missing)
     source = (BUNDLE / "lib" / "fracturize" / "ui.py").read_text()
     assert "def _report_open_failure" in source
-    assert 'message(\n            "Project open failed"' in source
+    assert 'title="Project open failed"' in source
+    assert "def _report_project_failure" in source
     assert "print(trace, flush=True)" in source
 
 

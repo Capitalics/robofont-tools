@@ -142,7 +142,7 @@ These are not automated compatibility failures and should not be mixed with them
 
 There is no commit to identify, and the entire tree is untracked. The digest above makes this audit identifiable, but corrections and Prompt 3 should start from an initial commit or tag. Generated caches and `.DS_Store` files also need normal repository hygiene.
 
-The external Excalibur subset fixture's provenance and redistribution license are not documented next to the fixture. Permission should be confirmed or the fixture replaced before publishing the standalone repository.
+The then-current external fixture had no documented redistribution license. This finding is resolved: it was removed and replaced by original synthetic regression data.
 
 ### Low — serialized reconstruction validation uses the reopened intact master as its source
 
@@ -189,7 +189,7 @@ The source-fingerprint canonicalization and visual tuning can remain owner-scope
 3. **Visual threshold:** accept the current single-impact, angular rock language for the minimal extension, or request one bounded tuning pass before Prompt 3.
 4. **Source-change semantics:** retain conservative raw-outline fingerprints or canonicalize fingerprints to the normalized generation input.
 5. **Reproducibility:** create an initial commit/tag before corrections and Prompt 3.
-6. **Fixture licensing:** confirm that the Excalibur subset may be kept in the published repository, or replace it with a redistributable fixture.
+6. **Fixture licensing:** resolved by replacing the private subset with an original synthetic fixture.
 7. **Motion versioning:** decide whether future motion regeneration must reproduce transforms from older application versions exactly.
 
 ## Final recommendation

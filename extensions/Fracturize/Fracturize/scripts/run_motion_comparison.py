@@ -13,7 +13,7 @@ from fracturize.core import (
 )
 from fracturize.input_ufo import defcon_glyph_to_outline
 from fracturize.model import GenerationSettings
-from fracturize.report import write_motion_comparison
+from test_support.reporting import write_motion_comparison
 from fracturize.ufo import write_json_report
 
 
@@ -51,10 +51,11 @@ def motion_metrics(result):
 
 def main():
     root = Path(__file__).resolve().parents[1]
-    source_path = root / "fixtures" / "Excalibur_Headline_1.0_BK_subset.ufo"
+    source_path = root / "tests" / "fixtures" / "FracturizeRegression.ufo"
     artifacts = root / "artifacts"
+    artifacts.mkdir(parents=True, exist_ok=True)
     settings = GenerationSettings(
-        project_seed="excalibur-motion-comparison",
+        project_seed="synthetic-motion-comparison",
         complexity=72,
         erosion_amount=0.72,
         movement_direction_degrees=-58.0,

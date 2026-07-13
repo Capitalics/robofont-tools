@@ -66,7 +66,7 @@ All settings must be finite and within bounded ranges. Minimum scale is restrict
 
 The accidental public MIT license was replaced with a private, internal-use, all-rights-reserved notice. Fracturize remains in the existing private `robofont-tools` repository; no separate Git repository was initialized or required.
 
-The Excalibur UFO and its generated derivatives remain private validation fixtures. Documentation marks them for removal in a later cleanup before any extension packaging or distribution.
+The private validation UFO and its generated derivatives were marked for later removal. That cleanup is now complete; original synthetic regression data replaced them.
 
 ## Regression results
 
@@ -86,7 +86,7 @@ The 24 added tests cover complete rollback boundaries, exact project save and to
 
 ## Real-font and persistent-project re-validation
 
-The unchanged private Excalibur subset was rerun through both harnesses.
+The unchanged private subset was rerun through both harnesses during this historical validation.
 
 | Measure | Result |
 | --- | ---: |
@@ -156,7 +156,7 @@ Subjective visual review, kept separate from compatibility, finds that the new s
 | Medium: serialization-sensitive source fingerprint | intentionally retained; its sole role is conservative open-source-glyph change detection |
 | Medium: explosive/slab-like motion | materially reduced by version-2 architectural motion; further taste tuning remains possible |
 | Low: no separate commit/repository | superseded by owner policy: remain in the existing private repository |
-| Low: fixture/public licensing ambiguity | public license removed; private fixtures marked for later removal |
+| Low: fixture/public licensing ambiguity | resolved by replacing private data with original synthetic data |
 | Low: serialized silhouette reference was tautological | corrected to use the intended pre-save intact silhouette |
 
 ## Remaining limitations
@@ -171,7 +171,7 @@ Subjective visual review, kept separate from compatibility, finds that the new s
 8. Motion remains per-fragment affine translation, rotation, and scale; it is not physical erosion simulation.
 9. Baseline is currently assumed to be font y=0, and size-class thresholds are fixed implementation bounds.
 10. Format version 1 has no migration framework.
-11. Private Excalibur fixtures and generated artifacts require later cleanup before any packaging.
+11. The private fixture and generated-artifact cleanup is complete.
 
 ## Decisions still needed before or during Prompt 3
 

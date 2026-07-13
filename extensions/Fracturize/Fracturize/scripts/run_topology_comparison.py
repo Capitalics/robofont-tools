@@ -18,7 +18,7 @@ from fracturize.core import (
 )
 from fracturize.geometry import adaptive_flattening_tolerance, normalize_outline
 from fracturize.input_ufo import load_ufo_outlines
-from fracturize.report import write_topology_comparison
+from test_support.reporting import write_topology_comparison
 from fracturize.ufo import result_summary, write_json_report
 
 
@@ -53,8 +53,9 @@ def segment_statistics(lines) -> dict:
 
 def main():
     root = Path(__file__).resolve().parents[1]
-    source = root / "fixtures" / "Excalibur_Headline_1.0_BK_subset.ufo"
+    source = root / "tests" / "fixtures" / "FracturizeRegression.ufo"
     artifact_dir = root / "artifacts"
+    artifact_dir.mkdir(parents=True, exist_ok=True)
     digest_before = tree_digest(source)
     outlines, rejected, _ = load_ufo_outlines(source)
     selected = {"A", "M", "R", "eight", "O", "S"}

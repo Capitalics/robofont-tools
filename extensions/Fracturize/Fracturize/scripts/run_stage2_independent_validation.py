@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 
 from fontTools.pens.recordingPen import RecordingPointPen
+from fontTools.designspaceLib import AxisDescriptor, DesignSpaceDocument, SourceDescriptor
 from fontTools.ttLib import TTFont
 from fontTools.ufoLib import UFOReader
 from fontmake.font_project import FontProject
@@ -47,9 +48,9 @@ def read_glyph(glyph_set, name):
         elif operation == "addComponent":
             raise AssertionError(f"generated glyph {name} unexpectedly contains a component")
     return {
-        "width": info.width,
+        "width": getattr(info, "width", 0),
         "unicodes": tuple(getattr(info, "unicodes", ())),
-        "lib": info.lib,
+        "lib": getattr(info, "lib", {}),
         "contours": contours,
     }
 
@@ -61,9 +62,36 @@ def signed_area(points):
     )
 
 
+def write_test_designspace(project, path):
+    """Create the disposable two-source designspace used by this validation."""
+
+    document = DesignSpaceDocument()
+    axis = AxisDescriptor()
+    axis.name = "Erosion"
+    axis.tag = "EROD"
+    axis.minimum = 0
+    axis.default = 0
+    axis.maximum = 100
+    document.addAxis(axis)
+    for name, source_path, location in (
+        ("intact", project.intact_path, 0),
+        ("eroded", project.eroded_path, 100),
+    ):
+        source = SourceDescriptor()
+        source.name = name
+        source.path = str(source_path)
+        source.location = {"Erosion": location}
+        source.copyInfo = location == 0
+        source.copyLib = location == 0
+        source.copyFeatures = location == 0
+        source.copyGroups = location == 0
+        document.addSource(source)
+    document.write(path)
+
+
 def main():
     root = Path(__file__).resolve().parents[1]
-    project_path = root / "artifacts" / "stage2-demo" / "ExcaliburFractureDemo.fracturize.json"
+    project_path = root / "artifacts" / "stage2-demo" / "SyntheticFractureDemo.fracturize.json"
     project = FractureProject.open(project_path)
     if project.edited_outputs:
         raise AssertionError(f"unexpected edited outputs: {project.edited_outputs}")
@@ -131,6 +159,7 @@ def main():
                     self_intersections += 1
 
     designspace = root / "artifacts" / "stage2-audit.designspace"
+    write_test_designspace(project, designspace)
     build_dir = Path("/tmp/fracturize-phase-c-build")
     if build_dir.exists():
         shutil.rmtree(build_dir)

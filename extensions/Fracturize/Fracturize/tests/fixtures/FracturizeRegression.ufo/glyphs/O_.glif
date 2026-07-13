@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<glyph name="O" format="2">
+  <advance width="690"/>
+  <unicode hex="004F"/>
+  <note>
+Synthetic cubic counter used for flattening and metadata tests.
+</note>
+  <anchor x="345" y="735" name="top"/>
+  <outline>
+    <contour>
+      <point x="645" y="350" type="curve" smooth="yes"/>
+      <point x="645" y="543.2996624407778"/>
+      <point x="510.68542494923804" y="700"/>
+      <point x="345" y="700" type="curve" smooth="yes"/>
+      <point x="179.31457505076193" y="700"/>
+      <point x="45" y="543.2996624407778"/>
+      <point x="45" y="350" type="curve" smooth="yes"/>
+      <point x="45" y="156.70033755922225"/>
+      <point x="179.31457505076193" y="0"/>
+      <point x="345" y="0" type="curve" smooth="yes"/>
+      <point x="510.68542494923804" y="0"/>
+      <point x="645" y="156.70033755922225"/>
+    </contour>
+    <contour>
+      <point x="500" y="350" type="curve" smooth="yes"/>
+      <point x="500" y="231.25877878637937"/>
+      <point x="430.604136223773" y="135"/>
+      <point x="345" y="135" type="curve" smooth="yes"/>
+      <point x="259.395863776227" y="135"/>
+      <point x="190" y="231.25877878637937"/>
+      <point x="190" y="350" type="curve" smooth="yes"/>
+      <point x="190" y="468.74122121362063"/>
+      <point x="259.395863776227" y="565"/>
+      <point x="345" y="565" type="curve" smooth="yes"/>
+      <point x="430.604136223773" y="565"/>
+      <point x="500" y="468.74122121362063"/>
+    </contour>
+  </outline>
+  <lib>
+    <dict>
+      <key>com.fracturize.fixture.glyphData</key>
+      <dict>
+        <key>purpose</key>
+        <string>cubic-counter</string>
+      </dict>
+    </dict>
+  </lib>
+</glyph>
