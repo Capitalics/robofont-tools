@@ -317,11 +317,8 @@ def test_batch_summary_separates_completed_skipped_rejected_and_failed(live_cont
         action="generate",
     )
 
-    assert result["completed"] == ["I"]
-    assert result["skipped"] == [
-        ("O", "already processed"),
-        ("i", "component preserved"),
-    ]
+    assert result["completed"] == ["i", "I"]
+    assert result["skipped"] == [("O", "already processed")]
     assert result["rejected"] == []
     assert result["failed"][0][0] == "missingGlyph"
     assert result["cancelled"] is False
@@ -663,7 +660,7 @@ def test_seed_change_requires_explicit_topology_regeneration(live_controller):
     assert project.data["processedGlyphs"]["O"]["effectiveSeed"] != old_seed
 
 
-def test_component_checkbox_off_preserves_working_glyphs_and_source(live_controller):
+def test_component_preprocessing_is_automatic_and_never_modifies_source(live_controller):
     controller, project, environment = live_controller
     before = {
         "source": glyph_content_digest(project.source_font["i"]),
@@ -671,16 +668,16 @@ def test_component_checkbox_off_preserves_working_glyphs_and_source(live_control
         "eroded": glyph_content_digest(project.eroded_font["i"]),
     }
 
-    preserved = controller.process_names(["i"], action="generate")
+    generated = controller.process_names(["i"], action="generate")
 
-    assert preserved["skipped"] == [("i", "component preserved")]
-    assert preserved["rejected"] == []
-    assert "i" not in project.data["processedGlyphs"]
+    assert generated["completed"] == ["i"]
+    assert generated["rejected"] == []
+    assert project.data["processedGlyphs"]["i"]["componentsDecomposed"] is True
     assert glyph_content_digest(project.source_font["i"]) == before["source"]
-    assert glyph_content_digest(project.intact_font["i"]) == before["intact"]
-    assert glyph_content_digest(project.eroded_font["i"]) == before["eroded"]
-    assert project.intact_font["i"].components
-    assert project.eroded_font["i"].components
+    assert glyph_content_digest(project.intact_font["i"]) != before["intact"]
+    assert glyph_content_digest(project.eroded_font["i"]) != before["eroded"]
+    assert not project.intact_font["i"].components
+    assert not project.eroded_font["i"].components
 
 
 def test_component_checkbox_on_decomposes_only_generated_working_glyphs(live_controller):
@@ -698,6 +695,106 @@ def test_component_checkbox_on_decomposes_only_generated_working_glyphs(live_con
     assert len(project.source_font["i"].components) == source_components
     assert not project.intact_font["i"].components
     assert not project.eroded_font["i"].components
+
+
+def test_automatic_preprocessing_and_saved_cubics_for_requested_glyph_shapes(tmp_path):
+    source = enriched_source()
+
+    def append_component(glyph, base_name, transformation=(1, 0, 0, 1, 0, 0)):
+        component = glyph.instantiateComponent()
+        component.baseGlyph = base_name
+        component.transformation = transformation
+        glyph.appendComponent(component)
+
+    agrave = source.newGlyph("Agrave")
+    agrave.width = source["A"].width
+    append_component(agrave, "A")
+    # The low accent deliberately intersects the A so the detached boolean
+    # preprocessing path is exercised, not merely component decomposition.
+    append_component(agrave, "dotaccentcomb", (1, 0, 0, 1, 140, 0))
+
+    adieresis = source.newGlyph("Adieresis")
+    adieresis.width = source["A"].width
+    append_component(adieresis, "A")
+    append_component(adieresis, "dotaccentcomb", (0.7, 0, 0, 0.7, 40, 320))
+    append_component(adieresis, "dotaccentcomb", (0.7, 0, 0, 0.7, 250, 320))
+
+    names = ("O", "A", "Agrave", "Adieresis")
+    source_digests = {name: glyph_content_digest(source[name]) for name in names}
+    source_component_counts = {name: len(source[name].components) for name in names}
+    environment = FakeEnvironment(source)
+    controller = FracturizeController(environment)
+    project = controller.create_project(
+        tmp_path / "Preprocessed.fracturize.json",
+        project_name="Preprocessed",
+        project_seed="automatic-preprocessing",
+        complexity=20,
+    )
+
+    previews = {name: controller.preview(name, regenerate_topology=True) for name in names}
+    result = controller.process_names(names, action="generate")
+
+    assert result["completed"] == list(names)
+    assert result["rejected"] == result["failed"] == []
+    assert all(previews[name].normalization.normalization_applied is False for name in names)
+    for name in names:
+        assert glyph_content_digest(project.source_font[name]) == source_digests[name]
+        assert len(project.source_font[name].components) == source_component_counts[name]
+        assert not project.intact_font[name].components
+        assert not project.eroded_font[name].components
+        assert master_from_glyph(project.intact_font[name]) == previews[name].intact
+        assert master_from_glyph(project.eroded_font[name]) == previews[name].eroded
+    validate_working_font_pair(project.intact_font, project.eroded_font)
+
+    project.intact_font.save()
+    project.eroded_font.save()
+    reopened_intact = Font(project.data["workingFonts"]["intact"]["path"])
+    reopened_eroded = Font(project.data["workingFonts"]["eroded"]["path"])
+    validate_working_font_pair(reopened_intact, reopened_eroded)
+    for name in names:
+        assert not reopened_intact[name].components
+        assert not reopened_eroded[name].components
+        assert master_from_glyph(reopened_intact[name]) == previews[name].intact
+        assert master_from_glyph(reopened_eroded[name]) == previews[name].eroded
+    for role_font in (reopened_intact, reopened_eroded):
+        for name in ("O", "Agrave", "Adieresis"):
+            assert _glyph_segment_counts(role_font[name])["cubic"] > 0
+
+
+def test_generate_confirms_once_and_replaces_both_batch_outputs(live_controller):
+    controller, project, environment = live_controller
+    assert controller.process_names(["O", "I"], action="generate")["completed"] == [
+        "O",
+        "I",
+    ]
+    before = {
+        (role, name): glyph_content_digest(getattr(project, f"{role}_font")[name])
+        for role in ("intact", "eroded")
+        for name in ("O", "I")
+    }
+    controller.update_settings(complexity=70)
+    assert project.glyph_status("O") == project.glyph_status("I") == "topology-outdated"
+    confirmations = []
+
+    result = controller.process_names(
+        ["O", "I"],
+        action="generate",
+        confirm_topology_replacement=lambda glyph_name: confirmations.append(glyph_name) or True,
+    )
+
+    assert result["completed"] == ["O", "I"]
+    assert confirmations == ["O"]
+    for role in ("intact", "eroded"):
+        font = getattr(project, f"{role}_font")
+        for name in ("O", "I"):
+            assert glyph_content_digest(font[name]) != before[(role, name)]
+            assert project.glyph_status(name) == "processed"
+    reopened_project = LiveFractureProject.open(project.path)
+    assert all(
+        reopened_project.data["processedGlyphs"][name]["topologyComplexity"] == 70
+        for name in ("O", "I")
+    )
+    validate_working_font_pair(project.intact_font, project.eroded_font)
 
 
 def test_component_batch_preflight_finds_each_source_component_once(live_controller):

@@ -11,7 +11,9 @@ from dataclasses import asdict, replace
 from datetime import datetime, timezone
 from pathlib import Path
 
+from booleanOperations.booleanGlyph import BooleanGlyph
 from defcon import Font as DefconFont
+from shapely.geometry import LineString, Polygon
 
 from . import __version__
 from .core import (
@@ -24,7 +26,12 @@ from .core import (
     generate_pair,
     regenerate_motion_from_topology,
 )
-from .geometry import master_contours_to_union
+from .geometry import (
+    adaptive_flattening_tolerance,
+    flatten_outline,
+    master_contours_to_union,
+    signed_area,
+)
 from .fingerprints import glyph_content_digest, source_fingerprint
 from .input_ufo import defcon_glyph_to_outline
 from .model import (
@@ -82,6 +89,46 @@ class EditedOutputError(LiveProjectError):
 
 class StaleSourceError(LiveProjectError):
     pass
+
+
+def _outline_overlap_groups(outline, tolerance):
+    """Return connected contour groups which need boolean union.
+
+    Nested opposite-winding contours are ordinary counters, not overlap. This
+    guard also leaves already-clean cubic contour order and segment identity
+    untouched instead of needlessly normalizing every source glyph. Disjoint
+    contours are excluded from a union group because booleanOperations should
+    not rewrite unrelated exterior paths.
+    """
+
+    rings = flatten_outline(outline, tolerance)
+    boundaries = [LineString((*ring, ring[0])) for ring in rings]
+    polygons = [Polygon(ring) for ring in rings]
+    links = {index: {index} for index in range(len(rings))}
+    required = {index for index, boundary in enumerate(boundaries) if not boundary.is_simple}
+    for first in range(len(rings)):
+        for second in range(first):
+            overlaps = boundaries[first].intersects(boundaries[second]) or (
+                signed_area(rings[first]) * signed_area(rings[second]) > 0
+                and polygons[first].intersection(polygons[second]).area > tolerance * tolerance
+            )
+            if overlaps:
+                links[first].add(second)
+                links[second].add(first)
+                required.update((first, second))
+    groups = []
+    unseen = set(required)
+    while unseen:
+        pending = [unseen.pop()]
+        group = set(pending)
+        while pending:
+            for linked in links[pending.pop()]:
+                if linked in required and linked not in group:
+                    group.add(linked)
+                    unseen.discard(linked)
+                    pending.append(linked)
+        groups.append(tuple(sorted(group)))
+    return tuple(sorted(groups))
 
 
 def _now():
@@ -419,6 +466,7 @@ def _draw_live_outline_only(glyph, master: MasterGlyph, metadata: dict):
         raise LiveProjectError(
             f"live pen wrote {len(drawn_contours)} contours; expected {len(master.contours)}"
         )
+    identifiers = _native(glyph).identifiers
     for drawn, generated in zip(drawn_contours, master.contours):
         drawn.identifier = generated.identifier
         drawn_segments = list(drawn.segments)
@@ -429,6 +477,11 @@ def _draw_live_outline_only(glyph, master: MasterGlyph, metadata: dict):
             )
         for drawn_segment, point_id in zip(drawn_segments, generated.point_ids):
             drawn_segment[-1].identifier = point_id
+            # Defcon's Point.identifier setter deliberately does not maintain
+            # the owning glyph's identifier registry. Segment-pen points are
+            # already attached when IDs are restored here, so register them
+            # explicitly or a later clearContours() fails during regeneration.
+            identifiers.add(point_id)
 
     glyph.lib[LIB_KEY] = fragment_map
     glyph.lib.update(metadata)
@@ -768,23 +821,48 @@ class LiveFractureProject:
         native = _native(self.source_font)
         if glyph_name not in native:
             raise LiveProjectError(f"source glyph does not exist: {glyph_name}")
-        glyph = native[glyph_name]
-        if glyph.components:
-            if not decompose_components:
-                raise ComponentConfirmationRequired(
-                    f"{glyph_name} contains components and requires decomposition confirmation"
-                )
-            # Defcon/RoboFont fonts contain observer locks and cannot be
-            # deep-copied safely. Serialization gives decomposition a detached
-            # component graph while leaving the open source document untouched.
-            temporary_font = DefconFont()
-            temporary_font.setDataFromSerialization(native.getDataForSerialization())
-            temporary_font[glyph_name].decomposeAllComponents()
-            glyph = temporary_font[glyph_name]
-        return defcon_glyph_to_outline(
+        # Defcon/RoboFont fonts contain observer locks and cannot be deep-copied
+        # safely. Serialization gives preprocessing a detached component graph
+        # and guarantees that neither decomposition nor boolean operations can
+        # touch the live source document. ``decompose_components`` remains in
+        # the API only for compatibility with existing project/UI callers;
+        # preprocessing is now unconditional.
+        temporary_font = DefconFont()
+        temporary_font.setDataFromSerialization(native.getDataForSerialization())
+        glyph = temporary_font[glyph_name]
+        glyph.decomposeAllComponents()
+
+        outline = defcon_glyph_to_outline(
             glyph,
             units_per_em=float(native.info.unitsPerEm or 1000),
         )
+
+        # BooleanGlyph retains cubic segments while removing component and
+        # contour overlap. Draw contours only: anchors and other source glyph
+        # metadata are not generation geometry and already remain in the live
+        # working glyphs when their outlines are replaced.
+        overlap_groups = _outline_overlap_groups(
+            outline,
+            adaptive_flattening_tolerance(outline.units_per_em),
+        )
+        if overlap_groups:
+            source = BooleanGlyph(glyph)
+            replacements = {}
+            for group in overlap_groups:
+                subset = BooleanGlyph()
+                subset.contours = [source.contours[index] for index in group]
+                replacements[group[0]] = subset.removeOverlap().contours
+                replacements.update({index: () for index in group[1:]})
+            glyph.clearContours()
+            point_pen = glyph.getPointPen()
+            for index, contour in enumerate(source.contours):
+                for output in replacements.get(index, (contour,)):
+                    output.drawPoints(point_pen)
+            outline = defcon_glyph_to_outline(
+                glyph,
+                units_per_em=float(native.info.unitsPerEm or 1000),
+            )
+        return outline
 
     def glyph_has_components(self, glyph_name):
         """Return whether the live source glyph contains components.
@@ -1022,14 +1100,11 @@ class LiveFractureProject:
         )
 
     def regenerate_topology(self, glyph_name, *, replace_edited=False, save_hook=None):
-        record = self.data["processedGlyphs"].get(glyph_name, {})
-        result = self.preview_new_topology(
-            glyph_name,
-            decompose_components=record.get("componentsDecomposed", False),
-        )
+        components_decomposed = self.glyph_has_components(glyph_name)
+        result = self.preview_new_topology(glyph_name)
         return self.process_result(
             result,
-            components_decomposed=record.get("componentsDecomposed", False),
+            components_decomposed=components_decomposed,
             replace_edited=replace_edited,
             save_hook=save_hook,
         )

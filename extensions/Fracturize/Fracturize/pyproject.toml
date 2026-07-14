@@ -8,6 +8,7 @@ version = "0.1.0.dev0"
 description = "Internal RoboFont extension for compatible fractured glyph masters"
 requires-python = ">=3.11"
 dependencies = [
+    "booleanOperations>=0.10,<1",
     "defcon>=0.10,<1",
     "fonttools>=4.55,<5",
     "shapely>=2.1,<3",

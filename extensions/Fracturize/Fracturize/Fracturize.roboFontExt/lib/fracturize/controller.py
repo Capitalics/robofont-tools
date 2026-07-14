@@ -392,6 +392,7 @@ class FracturizeController:
         skipped = []
         rejected = []
         failed = []
+        topology_replacement_accepted = None
 
         def notify_complete(index, glyph_name):
             if item_complete:
@@ -438,25 +439,18 @@ class FracturizeController:
                     )
                 elif action == "generate":
                     has_components = self.project.glyph_has_components(glyph_name)
-                    if has_components and not decompose_components:
-                        # Working UFOs begin as complete source copies, so doing
-                        # nothing is the exact component-preserving operation.
-                        # The glyph inherits fracture through any processed base
-                        # glyphs and remains available for a later decomposed run.
-                        skipped.append((glyph_name, "component preserved"))
-                        notify_complete(index, glyph_name)
-                        continue
                     if glyph_name in self.project.data["processedGlyphs"]:
                         if self.project.glyph_status(glyph_name) != "topology-outdated":
                             skipped.append((glyph_name, "already processed"))
                             notify_complete(index, glyph_name)
                             continue
-                        accepted = (
-                            confirm_topology_replacement(glyph_name)
-                            if confirm_topology_replacement
-                            else False
-                        )
-                        if not accepted:
+                        if topology_replacement_accepted is None:
+                            topology_replacement_accepted = bool(
+                                confirm_topology_replacement(glyph_name)
+                                if confirm_topology_replacement
+                                else False
+                            )
+                        if not topology_replacement_accepted:
                             skipped.append((glyph_name, "topology regeneration not confirmed"))
                             notify_complete(index, glyph_name)
                             continue
@@ -467,11 +461,8 @@ class FracturizeController:
                         completed.append(glyph_name)
                         notify_complete(index, glyph_name)
                         continue
-                    decomposed = bool(has_components and decompose_components)
-                    result = self.project.preview_new_topology(
-                        glyph_name,
-                        decompose_components=decomposed,
-                    )
+                    decomposed = bool(has_components)
+                    result = self.project.preview_new_topology(glyph_name)
                     self.project.process_result(
                         result,
                         components_decomposed=decomposed,
