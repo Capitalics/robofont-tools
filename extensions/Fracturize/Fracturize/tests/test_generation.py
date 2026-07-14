@@ -299,40 +299,127 @@ def test_edge_profile_parameters_change_only_active_point_density():
     assert low.minimum_segment_length == middle.minimum_segment_length == high.minimum_segment_length
 
 
-def test_short_span_amplitude_floor_changes_only_perpendicular_offsets():
+def test_short_span_roughness_scales_one_stable_two_dimensional_vector_field():
     parameters = edge_profile_parameters(100, 1000)
     arguments = (
         Point(0, 0),
         Point(45, 0),
         parameters,
     )
-    straight = _roughen_span(
-        *arguments,
-        random.Random(1742),
-        1000,
-        1.0,
-        100,
-        offset_scale=lambda point: 0.0,
-    )
-    rough = _roughen_span(
-        *arguments,
-        random.Random(1742),
-        1000,
-        1.0,
-        100,
-        offset_scale=lambda point: 1.0,
-    )
+    profiles = [
+        _roughen_span(
+            *arguments,
+            random.Random(1742),
+            1000,
+            1.0,
+            100,
+            roughness,
+            offset_scale=lambda point: 1.0,
+        )
+        for roughness in (0, 50, 100)
+    ]
+    straight, middle, rough = profiles
 
-    assert len(rough) == len(straight)
-    assert [point[0] for point in rough] == [point[0] for point in straight]
+    assert len(straight) == len(middle) == len(rough)
     assert rough[0] == straight[0] == (0, 0)
     assert rough[-1] == straight[-1] == (45, 0)
+    assert all(
+        middle_point == pytest.approx(
+            (
+                (straight_point[0] + rough_point[0]) * 0.5,
+                (straight_point[1] + rough_point[1]) * 0.5,
+            )
+        )
+        for straight_point, middle_point, rough_point in zip(straight, middle, rough)
+    )
+    assert any(
+        abs(rough_point[0] - straight_point[0]) > 1e-7
+        for straight_point, rough_point in zip(straight[1:-1], rough[1:-1])
+    )
     assert max(abs(point[1]) for point in rough[1:-1]) >= 1.0
     assert max(abs(point[1]) for point in rough) <= 45 * 0.30 * 2.2
     assert min(
         math.dist(first, second)
         for first, second in zip(rough, rough[1:])
     ) >= parameters.minimum_segment_length
+
+
+def test_rock_edge_roughness_scales_only_fixed_o_edge_vectors():
+    outline = proof_fixtures()["O.curve"]
+    base = GenerationSettings(
+        project_seed="rock-roughness-fixed-o",
+        complexity=75,
+        rock_edge_detail=75,
+    )
+    results = [
+        generate_pair(outline, replace(base, rock_edge_roughness=roughness))
+        for roughness in (0, 50, 100)
+    ]
+
+    def fragment_identity(result):
+        return tuple(
+            (
+                fragment.identifier,
+                fragment.area,
+                fragment.centroid,
+                fragment.bounds,
+                fragment.transform_origin,
+            )
+            for fragment in result.fragments
+        )
+
+    def motion(result):
+        return tuple(
+            (fragment.translation, fragment.rotation_degrees, fragment.scale)
+            for fragment in result.fragments
+        )
+
+    def exterior_cubics(result):
+        return tuple(
+            coordinate
+            for contour in result.intact.contours
+            for segment in contour.segments
+            if isinstance(segment, CubicSegment)
+            for point in (
+                segment.start,
+                segment.control1,
+                segment.control2,
+                segment.end,
+            )
+            for coordinate in point
+        )
+
+    assert all(result.validation.compatible for result in results)
+    assert all(fragment_identity(result) == fragment_identity(results[0]) for result in results[1:])
+    assert all(motion(result) == motion(results[0]) for result in results[1:])
+    assert exterior_cubics(results[1]) == pytest.approx(exterior_cubics(results[0]), abs=2e-3)
+    assert exterior_cubics(results[2]) == pytest.approx(exterior_cubics(results[0]), abs=2e-3)
+    assert [len(result.fragments) for result in results] == [11, 11, 11]
+    point_counts = [
+        sum(len(contour.points) for contour in result.intact.contours)
+        for result in results
+    ]
+    assert point_counts[0] == point_counts[1] == point_counts[2]
+    assert [
+        tuple(type(segment) for segment in contour.segments)
+        for contour in results[0].intact.contours
+    ] == [
+        tuple(type(segment) for segment in contour.segments)
+        for contour in results[2].intact.contours
+    ]
+
+    amplitudes = [0.0, 0.0, 0.0]
+    for contours in zip(*(result.intact.contours for result in results)):
+        for clean, middle, full in zip(*(contour.points for contour in contours)):
+            amplitudes[1] = max(amplitudes[1], math.dist(clean, middle))
+            amplitudes[2] = max(amplitudes[2], math.dist(clean, full))
+            assert middle == pytest.approx(
+                ((clean[0] + full[0]) * 0.5, (clean[1] + full[1]) * 0.5),
+                abs=3e-7,
+            )
+    assert amplitudes[0] == 0
+    assert 0 < amplitudes[1] < amplitudes[2]
+    assert amplitudes[1] == pytest.approx(amplitudes[2] * 0.5, abs=3e-7)
 
 
 def test_rock_edge_detail_changes_only_micro_mesh_for_fixed_macro_seed():
@@ -573,6 +660,12 @@ def test_rock_edge_detail_preserves_fragment_identity_metrics_adjacency_and_moti
 def test_rock_edge_detail_rejects_values_outside_integer_slider_domain(value):
     with pytest.raises(ValueError, match="rock_edge_detail"):
         GenerationSettings(rock_edge_detail=value)
+
+
+@pytest.mark.parametrize("value", (-1, 101, 50.5, True))
+def test_rock_edge_roughness_rejects_values_outside_integer_slider_domain(value):
+    with pytest.raises(ValueError, match="rock_edge_roughness"):
+        GenerationSettings(rock_edge_roughness=value)
 
 
 def test_boundary_provenance_has_no_unexplained_clipping_nodes():

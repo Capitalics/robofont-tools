@@ -211,6 +211,27 @@ def test_rock_edge_detail_persists_marks_stale_and_motion_keeps_topology(tmp_pat
     assert project.glyph_status("O") == "processed"
 
 
+def test_rock_edge_roughness_persists_marks_stale_and_motion_keeps_topology(tmp_path):
+    project = create_project(tmp_path)
+    first = project.process_glyph("O")
+    first_record = dict(project.data["processedGlyphs"]["O"])
+
+    project.set_rock_edge_roughness(100)
+
+    assert FractureProject.open(project.path).settings.rock_edge_roughness == 100
+    assert project.glyph_status("O") == "topology-outdated"
+    motion_only = project.regenerate_motion("O")
+    assert motion_only.rock_edge_roughness == first.rock_edge_roughness == 50
+    assert project.data["processedGlyphs"]["O"]["topologyDigest"] == first_record["topologyDigest"]
+    assert project.glyph_status("O") == "topology-outdated"
+
+    regenerated = project.regenerate_topology("O")
+    assert regenerated.rock_edge_roughness == 100
+    assert project.data["processedGlyphs"]["O"]["topologyRockEdgeRoughness"] == 100
+    assert project.data["processedGlyphs"]["O"]["topologyDigest"] != first_record["topologyDigest"]
+    assert project.glyph_status("O") == "processed"
+
+
 def test_source_change_marks_stale_and_preserves_outputs_until_explicit_replacement(tmp_path):
     project = create_project(tmp_path)
     project.process_glyph("O")

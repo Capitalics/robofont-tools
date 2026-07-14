@@ -583,6 +583,7 @@ class LiveFractureProject:
         project_seed,
         complexity=50,
         rock_edge_detail=50,
+        rock_edge_roughness=50,
     ):
         path = Path(path).resolve()
         if path.exists():
@@ -592,6 +593,7 @@ class LiveFractureProject:
             project_seed=project_seed,
             complexity=complexity,
             rock_edge_detail=rock_edge_detail,
+            rock_edge_roughness=rock_edge_roughness,
         )
         project_id = str(uuid.uuid4())
         font_ids = {"intact": str(uuid.uuid4()), "eroded": str(uuid.uuid4())}
@@ -747,6 +749,15 @@ class LiveFractureProject:
             ):
                 raise LiveProjectIntegrityError(
                     f"invalid topologyRockEdgeDetail in processed-glyph record: {glyph_name}"
+                )
+            edge_roughness = record.get("topologyRockEdgeRoughness")
+            if edge_roughness is not None and (
+                isinstance(edge_roughness, bool)
+                or not isinstance(edge_roughness, int)
+                or not 0 <= edge_roughness <= 100
+            ):
+                raise LiveProjectIntegrityError(
+                    f"invalid topologyRockEdgeRoughness in processed-glyph record: {glyph_name}"
                 )
 
     @property
@@ -921,6 +932,8 @@ class LiveFractureProject:
                 "topologyRockEdgeDetail",
                 record["topologyComplexity"],
             ) != self.settings.rock_edge_detail
+            or record.get("topologyRockEdgeRoughness", 100)
+            != self.settings.rock_edge_roughness
         ):
             return "topology-outdated"
         return "processed"
@@ -1049,6 +1062,7 @@ class LiveFractureProject:
                 "topologyDigest": topology_hash,
                 "topologyComplexity": result.profile.value,
                 "topologyRockEdgeDetail": result.rock_edge_detail,
+                "topologyRockEdgeRoughness": result.rock_edge_roughness,
                 "outlineReconstructionVersion": result.outline_reconstruction_version,
                 "effectiveSeed": result.effective_seed,
                 "pairRevision": pair_revision,

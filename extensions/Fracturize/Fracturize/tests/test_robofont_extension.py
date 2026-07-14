@@ -626,6 +626,38 @@ def test_rock_edge_detail_preview_and_motion_only_keep_commit_boundaries(live_co
     assert project.glyph_status("O") == "topology-outdated"
 
 
+def test_rock_edge_roughness_slider_persists_marks_stale_and_previews(live_controller):
+    controller, project, environment = live_controller
+    controller.process_names(["O"], action="generate")
+    original = deepcopy(project.data["processedGlyphs"]["O"])
+
+    change = controller.set_rock_edge_roughness_from_slider(99.6, glyph_name="O")
+    preview = controller.preview("O", regenerate_topology=True)
+
+    assert change == {
+        "previous": 50,
+        "rockEdgeRoughness": 100,
+        "glyphStatus": "topology-outdated",
+        "topologyStale": True,
+    }
+    assert LiveFractureProject.open(project.path).settings.rock_edge_roughness == 100
+    assert preview.rock_edge_roughness == 100
+    assert preview.validation.compatible
+    assert project.data["processedGlyphs"]["O"] == original
+
+
+def test_ui_exposes_rock_edge_roughness_directly_below_detail():
+    source = (BUNDLE / "lib" / "fracturize" / "ui.py").read_text()
+
+    detail = source.index('self._add_slider("edgeDetail", "Rock Edge Detail"')
+    roughness = source.index('self._add_slider("edgeRoughness", "Rock Edge Roughness"')
+    crumble = source.index('self._add_slider("crumble", "Overall Crumble Amount"')
+    assert detail < roughness < crumble
+    assert '"edgeRoughness": settings.rock_edge_roughness' in source
+    assert "def rockEdgeRoughnessCallback(self, sender):" in source
+    assert "self.controller.set_rock_edge_roughness_from_slider(" in source
+
+
 def test_batch_generation_uses_saved_rock_edge_detail(live_controller):
     controller, project, environment = live_controller
     controller.set_rock_edge_detail_from_slider(25)

@@ -90,6 +90,7 @@ class FracturizeController:
         project_seed,
         complexity=50,
         rock_edge_detail=50,
+        rock_edge_roughness=50,
         logger=None,
     ):
         path = Path(path).resolve()
@@ -150,6 +151,7 @@ class FracturizeController:
                 project_seed=project_seed,
                 complexity=complexity,
                 rock_edge_detail=rock_edge_detail,
+                rock_edge_roughness=rock_edge_roughness,
             )
             created_paths.append(path)
             # Persist the live-font identity assigned by project creation.
@@ -336,6 +338,16 @@ class FracturizeController:
         return self._set_topology_slider(
             "rock_edge_detail",
             "rockEdgeDetail",
+            raw_value,
+            glyph_name=glyph_name,
+        )
+
+    def set_rock_edge_roughness_from_slider(self, raw_value, *, glyph_name=None):
+        """Normalize and persist the topology-only edge displacement control."""
+
+        return self._set_topology_slider(
+            "rock_edge_roughness",
+            "rockEdgeRoughness",
             raw_value,
             glyph_name=glyph_name,
         )

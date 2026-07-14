@@ -177,6 +177,7 @@ def result_summary(result: GenerationResult) -> dict:
         "flatteningTolerance": result.flattening_tolerance,
         "complexity": result.profile.value,
         "rockEdgeDetail": result.rock_edge_detail,
+        "rockEdgeRoughness": result.rock_edge_roughness,
         "normalization": {
             "fillRule": result.normalization.fill_rule,
             "applied": result.normalization.normalization_applied,

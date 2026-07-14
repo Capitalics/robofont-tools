@@ -89,6 +89,7 @@ def topology_to_dict(result: GenerationResult, *, units_per_em: float) -> dict:
         "effectiveSeed": result.effective_seed,
         "flatteningTolerance": result.flattening_tolerance,
         "rockEdgeDetail": result.rock_edge_detail,
+        "rockEdgeRoughness": result.rock_edge_roughness,
         "outlineReconstructionVersion": result.outline_reconstruction_version,
         "profile": asdict(result.profile),
         "normalization": asdict(result.normalization),
@@ -162,6 +163,9 @@ def topology_from_dict(data: dict) -> tuple[GenerationResult, float]:
         # preserves motion-only regeneration for projects made before the
         # independent control existed.
         rock_edge_detail=int(data.get("rockEdgeDetail", profile.value)),
+        # Stored topologies predating the independent control used the full
+        # displacement amplitude.
+        rock_edge_roughness=int(data.get("rockEdgeRoughness", 100)),
         profile=profile,
         normalization=normalization,
         fragments=tuple(fragments),

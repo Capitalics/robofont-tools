@@ -447,6 +447,7 @@ def _roughen_span(
     upm: float,
     amplitude_scale: float,
     rock_edge_detail: int,
+    rock_edge_roughness: int = 100,
     offset_scale=None,
 ) -> list[tuple[float, float]]:
     dx = end.x - start.x
@@ -456,6 +457,7 @@ def _roughen_span(
         return [(start.x, start.y), (end.x, end.y)]
     direction = (dx / length, dy / length)
     normal = (-direction[1], direction[0])
+    roughness_scale = rock_edge_roughness / 100.0
     # Always construct the same maximum-detail candidates. Detail only filters
     # this sequence after every coordinate and displacement has been fixed.
     maximum_density = edge_profile_parameters(100, upm).edge_subdivision_density
@@ -521,18 +523,30 @@ def _roughen_span(
             start.y + direction[1] * local_distance,
         )
         local_scale = offset_scale(base_point) if offset_scale is not None else 1.0
+        # Derive the second vector component without consuming the established
+        # Detail RNG stream. Candidate distances, activation thresholds and
+        # all existing perpendicular values therefore remain independent of
+        # Roughness. The full 2D vector is fixed before the slider scale is
+        # applied.
+        tangent_payload = repr((rng.getstate(), distance, local_distance)).encode("ascii")
+        tangent_digest = hashlib.sha256(tangent_payload).digest()
+        tangent_unit = int.from_bytes(tangent_digest[:8], "big") / (2**64 - 1)
+        tangent_offset = (tangent_unit * 2.0 - 1.0) * amplitude * 0.35
         offset *= local_scale
+        tangent_offset *= local_scale
         candidate = (
-            base_point[0] + normal[0] * offset,
-            base_point[1] + normal[1] * offset,
+            base_point[0]
+            + roughness_scale * (normal[0] * offset + direction[0] * tangent_offset),
+            base_point[1]
+            + roughness_scale * (normal[1] * offset + direction[1] * tangent_offset),
         )
         candidates.append(candidate)
         candidate_distances.append(local_distance)
         previous_offset = offset
         previous_distance = local_distance
-    while candidates and math.hypot(
-        end.x - candidates[-1][0], end.y - candidates[-1][1]
-    ) < parameters.minimum_segment_length:
+    # Endpoint eligibility belongs to the clean Detail schedule. Measuring the
+    # displaced coordinate here made Roughness alter point count.
+    while candidates and length - candidate_distances[-1] < parameters.minimum_segment_length:
         candidates.pop()
         candidate_distances.pop()
 
@@ -578,6 +592,7 @@ def _roughen_crack_mesh_once(
     upm: float,
     *,
     rock_edge_detail: int,
+    rock_edge_roughness: int = 100,
     parameters: EdgeProfileParameters | None = None,
 ) -> tuple[LineString, ...]:
     """Apply micro-edge detail while preserving endpoints and mesh junctions."""
@@ -600,6 +615,7 @@ def _roughen_crack_mesh_once(
         if silhouette.covers(point)
     )
     roughened = []
+    safety_roughened = []
     for line_index, line in enumerate(macro_lines):
         break_points = _macro_break_points(
             line,
@@ -607,6 +623,7 @@ def _roughen_crack_mesh_once(
             parameters.minimum_segment_length,
         )
         candidate = line
+        safety_candidate = line
         for attempt in range(4):
             payload = (
                 f"rough-edge-v1|{seed}|{line_index}|{attempt}|{line.normalize().wkb_hex}"
@@ -615,7 +632,7 @@ def _roughen_crack_mesh_once(
                 hashlib.sha256(payload.encode("ascii")).digest()[:8], "big"
             )
 
-            def build(detail):
+            def build(detail, roughness):
                 rng = random.Random(edge_seed)
                 coordinates = []
                 for (_, start), (_, end) in zip(break_points, break_points[1:]):
@@ -667,14 +684,18 @@ def _roughen_crack_mesh_once(
                         upm,
                         amplitude_scale=0.55**attempt,
                         rock_edge_detail=detail,
+                        rock_edge_roughness=roughness,
                         offset_scale=interior_offset_scale,
                     )
                     coordinates.extend(span if not coordinates else span[1:])
                 return LineString(coordinates)
 
-            maximum_candidate = build(100)
+            # Safety always selects against the same full-detail/full-vector
+            # reference. Roughness therefore cannot choose a new edge seed or
+            # fallback amplitude.
+            maximum_candidate = build(100, 100)
             comparison_lines = (
-                *enumerate(roughened),
+                *enumerate(safety_roughened),
                 *(
                     (other_index, macro_lines[other_index])
                     for other_index in range(line_index + 1, len(macro_lines))
@@ -686,15 +707,17 @@ def _roughen_crack_mesh_once(
                 for other_index, other in comparison_lines
             )
             if maximum_candidate.is_simple and intersections_stable:
+                safety_candidate = maximum_candidate
                 candidate = (
                     maximum_candidate
-                    if rock_edge_detail == 100
-                    else build(rock_edge_detail)
+                    if rock_edge_detail == 100 and rock_edge_roughness == 100
+                    else build(rock_edge_detail, rock_edge_roughness)
                 )
                 break
         if not candidate.is_simple:
             candidate = line
         roughened.append(candidate)
+        safety_roughened.append(safety_candidate)
     return tuple(roughened)
 
 
@@ -704,6 +727,7 @@ def generate_crack_mesh(
     seed: int,
     upm: float,
     rock_edge_detail: int = 50,
+    rock_edge_roughness: int = 50,
 ) -> tuple[LineString, ...]:
     """Return the macro layout with its deterministic rough edge profile applied."""
     crack_lines, _ = _profiled_crack_topology(
@@ -712,6 +736,7 @@ def generate_crack_mesh(
         seed,
         upm,
         rock_edge_detail,
+        rock_edge_roughness,
     )
     return crack_lines
 
@@ -810,8 +835,14 @@ def _profiled_crack_topology(
     seed: int,
     upm: float,
     rock_edge_detail: int,
+    rock_edge_roughness: int,
 ):
     """Return one edge profile and its faces without changing macro structure."""
+
+    if isinstance(rock_edge_roughness, bool) or not isinstance(rock_edge_roughness, int):
+        raise ValueError("rock edge roughness must be an integer in the range 0..100")
+    if not 0 <= rock_edge_roughness <= 100:
+        raise ValueError("rock edge roughness must be in the range 0..100")
 
     macro_lines = generate_macro_crack_mesh(silhouette, profile, seed, upm)
     macro_pieces = _topology_from_crack_lines(silhouette, profile, macro_lines, upm)
@@ -852,6 +883,7 @@ def _profiled_crack_topology(
             seed,
             upm,
             rock_edge_detail=100,
+            rock_edge_roughness=100,
             parameters=scaled,
         )
         maximum_mapped = mapped_profile(maximum_lines)
@@ -867,28 +899,46 @@ def _profiled_crack_topology(
             seed,
             upm,
             rock_edge_detail=50,
+            rock_edge_roughness=100,
             parameters=scaled,
         )
         if mapped_profile(midpoint_lines) is None:
             continue
-        candidate_lines = (
-            maximum_lines
-            if rock_edge_detail == 100
-            else midpoint_lines
-            if rock_edge_detail == 50
-            else _roughen_crack_mesh_once(
+        roughness_references = {
+            value: _roughen_crack_mesh_once(
                 macro_lines,
                 silhouette,
                 profile,
                 seed,
                 upm,
                 rock_edge_detail=rock_edge_detail,
+                rock_edge_roughness=value,
                 parameters=scaled,
             )
-        )
-        mapped = mapped_profile(candidate_lines)
-        if mapped is not None:
-            return candidate_lines, mapped
+            for value in (0, 50, 100)
+        }
+        mapped_references = {
+            value: mapped_profile(lines)
+            for value, lines in roughness_references.items()
+        }
+        if all(mapped is not None for mapped in mapped_references.values()):
+            candidate_lines = (
+                roughness_references[rock_edge_roughness]
+                if rock_edge_roughness in roughness_references
+                else _roughen_crack_mesh_once(
+                    macro_lines,
+                    silhouette,
+                    profile,
+                    seed,
+                    upm,
+                    rock_edge_detail=rock_edge_detail,
+                    rock_edge_roughness=rock_edge_roughness,
+                    parameters=scaled,
+                )
+            )
+            mapped = mapped_profile(candidate_lines)
+            if mapped is not None:
+                return candidate_lines, mapped
     return macro_lines, macro_pieces
 
 
@@ -913,6 +963,7 @@ def generate_topology(
     seed: int,
     upm: float,
     rock_edge_detail: int = 50,
+    rock_edge_roughness: int = 50,
 ):
     _, pieces = _profiled_crack_topology(
         silhouette,
@@ -920,6 +971,7 @@ def generate_topology(
         seed,
         upm,
         rock_edge_detail,
+        rock_edge_roughness,
     )
     return pieces
 
@@ -1253,6 +1305,7 @@ def generate_pair(
             seed,
             outline.units_per_em,
             settings.rock_edge_detail,
+            settings.rock_edge_roughness,
         )
     else:
         pieces = topology_generator(silhouette, profile, seed, outline.units_per_em)
@@ -1359,6 +1412,7 @@ def generate_pair(
         effective_seed=seed,
         flattening_tolerance=tolerance,
         rock_edge_detail=settings.rock_edge_detail,
+        rock_edge_roughness=settings.rock_edge_roughness,
         profile=profile,
         normalization=normalization,
         fragments=tuple(fragments),

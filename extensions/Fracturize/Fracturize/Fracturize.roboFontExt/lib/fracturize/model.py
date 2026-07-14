@@ -57,6 +57,7 @@ class GenerationSettings:
     project_seed: str = "fracturize-proof"
     complexity: int = 50
     rock_edge_detail: int = 50
+    rock_edge_roughness: int = 50
     glyph_seed_override: str | None = None
     movement_direction_degrees: float = -72.0
     movement_spread_degrees: float = 24.0
@@ -83,6 +84,12 @@ class GenerationSettings:
             raise ValueError("rock_edge_detail must be an integer in the range 0..100")
         if not 0 <= self.rock_edge_detail <= 100:
             raise ValueError("rock_edge_detail must be in the range 0..100")
+        if isinstance(self.rock_edge_roughness, bool) or not isinstance(
+            self.rock_edge_roughness, int
+        ):
+            raise ValueError("rock_edge_roughness must be an integer in the range 0..100")
+        if not 0 <= self.rock_edge_roughness <= 100:
+            raise ValueError("rock_edge_roughness must be in the range 0..100")
         if self.glyph_seed_override is not None and not isinstance(
             self.glyph_seed_override, str
         ):
@@ -215,6 +222,7 @@ class GenerationResult:
     effective_seed: int
     flattening_tolerance: float
     rock_edge_detail: int
+    rock_edge_roughness: int
     profile: ComplexityProfile
     normalization: NormalizationDiagnostics
     fragments: tuple[Fragment, ...]

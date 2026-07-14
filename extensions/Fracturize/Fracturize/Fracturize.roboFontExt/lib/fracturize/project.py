@@ -223,6 +223,13 @@ def validate_project_v1(data) -> None:
             or not 0 <= edge_detail <= 100
         ):
             raise ProjectIntegrityError(f"invalid rock edge detail for {glyph_name}")
+        edge_roughness = record.get("topologyRockEdgeRoughness")
+        if edge_roughness is not None and (
+            isinstance(edge_roughness, bool)
+            or not isinstance(edge_roughness, int)
+            or not 0 <= edge_roughness <= 100
+        ):
+            raise ProjectIntegrityError(f"invalid rock edge roughness for {glyph_name}")
         motion_settings = _require_mapping(
             record.get("motionSettings"),
             f"processedGlyphs.{glyph_name}.motionSettings",
@@ -231,6 +238,7 @@ def validate_project_v1(data) -> None:
             "project_seed",
             "complexity",
             "rock_edge_detail",
+            "rock_edge_roughness",
             "glyph_seed_override",
         }
         if set(motion_settings) != expected_motion_keys:
@@ -300,6 +308,7 @@ class FractureProject:
         project_seed: str,
         complexity: int = 50,
         rock_edge_detail: int = 50,
+        rock_edge_roughness: int = 50,
         intact_filename: str | None = None,
         eroded_filename: str | None = None,
         family_name: str | None = None,
@@ -314,6 +323,7 @@ class FractureProject:
             project_seed=project_seed,
             complexity=complexity,
             rock_edge_detail=rock_edge_detail,
+            rock_edge_roughness=rock_edge_roughness,
         )
         project_directory.mkdir(parents=True, exist_ok=True)
         project_filename = f"{project_name}.fracturize.json"
@@ -595,6 +605,8 @@ class FractureProject:
                 record["topologyComplexity"],
             ) != self.settings.rock_edge_detail:
                 status = "topology-outdated"
+            elif record.get("topologyRockEdgeRoughness", 100) != self.settings.rock_edge_roughness:
+                status = "topology-outdated"
             else:
                 status = "processed"
         if record.get("status") != status:
@@ -639,6 +651,14 @@ class FractureProject:
             settings = replace(self.settings, rock_edge_detail=value)
         except ValueError as error:
             raise ProjectError(f"invalid rock edge detail: {error}") from error
+        self.data["settings"] = asdict(settings)
+        self._save()
+
+    def set_rock_edge_roughness(self, value: int):
+        try:
+            settings = replace(self.settings, rock_edge_roughness=value)
+        except ValueError as error:
+            raise ProjectError(f"invalid rock edge roughness: {error}") from error
         self.data["settings"] = asdict(settings)
         self._save()
 
@@ -779,6 +799,7 @@ class FractureProject:
                     "topologyDigest": topology_hash,
                     "topologyComplexity": result.profile.value,
                     "topologyRockEdgeDetail": result.rock_edge_detail,
+                    "topologyRockEdgeRoughness": result.rock_edge_roughness,
                     "outlineReconstructionVersion": result.outline_reconstruction_version,
                     "pairRevision": pair_revision,
                     "contentDigests": content_digests,
@@ -790,6 +811,7 @@ class FractureProject:
                             "project_seed",
                             "complexity",
                             "rock_edge_detail",
+                            "rock_edge_roughness",
                             "glyph_seed_override",
                         }
                     },

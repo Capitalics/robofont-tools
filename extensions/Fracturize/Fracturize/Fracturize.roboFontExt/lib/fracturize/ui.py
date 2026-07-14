@@ -73,18 +73,19 @@ class FracturizeWindowController:
 
         self._add_slider("complexity", "Fracture Complexity", 200, 0, 100, 50, self.complexityCallback)
         self._add_slider("edgeDetail", "Rock Edge Detail", 230, 0, 100, 50, self.rockEdgeDetailCallback)
-        self._add_slider("crumble", "Overall Crumble Amount", 260, 0, 100, 55, self.motionCallback)
-        self._add_slider("largeMove", "Large Fragment Movement", 290, 0, 100, 18, self.motionCallback)
-        self._add_slider("mediumMove", "Medium Fragment Movement", 320, 0, 150, 55, self.motionCallback)
-        self._add_slider("smallMove", "Small Fragment Movement", 350, 0, 200, 100, self.motionCallback)
-        self._add_slider("direction", "Movement Direction", 380, -180, 180, -72, self.motionCallback)
-        self._add_slider("spread", "Directional Spread", 410, 0, 90, 24, self.motionCallback)
-        self._add_slider("baseline", "Baseline Retention", 440, 0, 100, 85, self.motionCallback)
-        self._add_slider("downward", "Maximum Downward Drift", 470, 0, 80, 25, self.motionCallback)
-        self._add_slider("cohesion", "Structural Cohesion", 500, 0, 100, 56, self.motionCallback)
-        self._add_slider("rotation", "Rotation Amount", 530, 0, 30, 12, self.motionCallback)
+        self._add_slider("edgeRoughness", "Rock Edge Roughness", 260, 0, 100, 50, self.rockEdgeRoughnessCallback)
+        self._add_slider("crumble", "Overall Crumble Amount", 290, 0, 100, 55, self.motionCallback)
+        self._add_slider("largeMove", "Large Fragment Movement", 320, 0, 100, 18, self.motionCallback)
+        self._add_slider("mediumMove", "Medium Fragment Movement", 350, 0, 150, 55, self.motionCallback)
+        self._add_slider("smallMove", "Small Fragment Movement", 380, 0, 200, 100, self.motionCallback)
+        self._add_slider("direction", "Movement Direction", 410, -180, 180, -72, self.motionCallback)
+        self._add_slider("spread", "Directional Spread", 440, 0, 90, 24, self.motionCallback)
+        self._add_slider("baseline", "Baseline Retention", 470, 0, 100, 85, self.motionCallback)
+        self._add_slider("downward", "Maximum Downward Drift", 500, 0, 80, 25, self.motionCallback)
+        self._add_slider("cohesion", "Structural Cohesion", 530, 0, 100, 56, self.motionCallback)
+        self._add_slider("rotation", "Rotation Amount", 560, 0, 30, 12, self.motionCallback)
         self.w.decomposeComponents = CheckBox(
-            (15, 555, 320, 20),
+            (15, 585, 320, 20),
             "Decompose components before processing",
             value=False,
         )
@@ -102,16 +103,16 @@ class FracturizeWindowController:
         self.w.compatibility = TextBox((660, 472, 270, 18), "Compatibility: —")
         self.w.warningDisplay = TextEditor((465, 500, 465, 120), readOnly=True)
 
-        self.w.generate = Button((15, 580, 90, 26), "Generate", callback=self.generateCallback)
-        self.w.preview = Button((110, 580, 90, 26), "Preview", callback=self.previewCallback)
-        self.w.motionOnly = Button((205, 580, 125, 26), "Regenerate Motion", callback=self.motionOnlyCallback)
-        self.w.topology = Button((335, 580, 125, 26), "Regenerate Topology", callback=self.topologyCallback)
-        self.w.validate = Button((15, 614, 95, 26), "Validate", callback=self.validateCallback)
-        self.w.replaceStale = Button((116, 614, 145, 26), "Replace Stale Glyph", callback=self.replaceStaleCallback)
-        self.w.cancel = Button((267, 614, 155, 26), "Cancel Batch", callback=self.cancelCallback)
+        self.w.generate = Button((15, 610, 90, 26), "Generate", callback=self.generateCallback)
+        self.w.preview = Button((110, 610, 90, 26), "Preview", callback=self.previewCallback)
+        self.w.motionOnly = Button((205, 610, 125, 26), "Regenerate Motion", callback=self.motionOnlyCallback)
+        self.w.topology = Button((335, 610, 125, 26), "Regenerate Topology", callback=self.topologyCallback)
+        self.w.validate = Button((15, 644, 95, 26), "Validate", callback=self.validateCallback)
+        self.w.replaceStale = Button((116, 644, 145, 26), "Replace Stale Glyph", callback=self.replaceStaleCallback)
+        self.w.cancel = Button((267, 644, 155, 26), "Cancel Batch", callback=self.cancelCallback)
         self.w.cancel.enable(False)
-        self.w.log = TextEditor((15, 665, 430, -15), readOnly=True)
-        self.w.batchStatus = TextEditor((465, 665, -15, -15), readOnly=True)
+        self.w.log = TextEditor((15, 695, 430, -15), readOnly=True)
+        self.w.batchStatus = TextEditor((465, 695, -15, -15), readOnly=True)
         self._set_batch_status(0, 0, "—", 0, 0, 0, 0)
 
     def _add_slider(self, name, label, y, minimum, maximum, value, callback):
@@ -195,6 +196,7 @@ class FracturizeWindowController:
         values = {
             "complexity": settings.complexity,
             "edgeDetail": settings.rock_edge_detail,
+            "edgeRoughness": settings.rock_edge_roughness,
             "crumble": settings.erosion_amount * 100,
             "largeMove": settings.large_fragment_movement_multiplier * 100,
             "mediumMove": settings.medium_fragment_movement_multiplier * 100,
@@ -281,6 +283,7 @@ class FracturizeWindowController:
                 project_seed=project_name,
                 complexity=round(self.w.complexity.get()),
                 rock_edge_detail=round(self.w.edgeDetail.get()),
+                rock_edge_roughness=round(self.w.edgeRoughness.get()),
                 logger=self._structured_create_log,
             )
             self._load_settings()
@@ -328,6 +331,7 @@ class FracturizeWindowController:
                 "settings_restored",
                 complexity=project.settings.complexity,
                 rock_edge_detail=project.settings.rock_edge_detail,
+                rock_edge_roughness=project.settings.rock_edge_roughness,
                 processed_count=len(project.data["processedGlyphs"]),
             )
             self._log(f"Opened project: {project.path}")
@@ -422,6 +426,25 @@ class FracturizeWindowController:
                 self.previewCurrent(regenerate_topology=True)
                 self.w.compatibility.set(
                     "Rock Edge Detail change: explicit regeneration required"
+                )
+                self.refresh_ui()
+            except Exception as error:
+                self._log(error)
+
+    def rockEdgeRoughnessCallback(self, sender):
+        raw_value = sender.get()
+        value = round(raw_value)
+        self.w.edgeRoughnessValue.set(str(value))
+        if self.controller.project:
+            try:
+                glyph_name = self._current_preview_name()
+                self.controller.set_rock_edge_roughness_from_slider(
+                    raw_value,
+                    glyph_name=glyph_name,
+                )
+                self.previewCurrent(regenerate_topology=True)
+                self.w.compatibility.set(
+                    "Rock Edge Roughness change: explicit regeneration required"
                 )
                 self.refresh_ui()
             except Exception as error:
@@ -526,7 +549,7 @@ class FracturizeWindowController:
         return bool(
             askYesNo(
                 "Regenerate fracture topology?",
-                f"{glyph_name} was generated with different fracture complexity, Rock Edge Detail, or seed. Replace both generated outlines with the selected topology?",
+                f"{glyph_name} was generated with different fracture complexity, Rock Edge Detail, Rock Edge Roughness, or seed. Replace both generated outlines with the selected topology?",
                 parentWindow=self.w,
             )
         )
