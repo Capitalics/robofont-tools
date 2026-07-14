@@ -15,11 +15,15 @@ from fracturize.live_project import (
     LiveFractureProject,
     LiveProjectError,
     VOLATILE_ROBOFONT_FONT_LIB_KEYS,
+    _draw_live_outline_only,
+    _glyph_segment_counts,
+    _log_glyph_segment_counts,
     guideline_records,
     glyph_content_digest,
     shared_font_data,
     validate_working_font_pair,
 )
+from fracturize.model import CubicSegment, LineSegment, MasterContour, MasterGlyph
 from fracturize.robofont_adapter import collect_glyph_names, master_to_preview_glyph
 from fracturize.ufo import master_from_glyph
 
@@ -98,6 +102,37 @@ class LiveGlyphProxy:
 
     def __getattr__(self, name):
         return getattr(self._glyph, name)
+
+
+class RecordingLiveGlyphProxy(LiveGlyphProxy):
+    """RoboFont-like glyph whose segment pen records the protocol boundary."""
+
+    def __init__(self, glyph):
+        super().__init__(glyph)
+        self.pen_calls = []
+
+    def getPen(self):
+        recording = self
+        delegate = self._glyph.getPen()
+
+        class RecordingPen:
+            def moveTo(self, point):
+                recording.pen_calls.append(("moveTo", (point,)))
+                delegate.moveTo(point)
+
+            def lineTo(self, point):
+                recording.pen_calls.append(("lineTo", (point,)))
+                delegate.lineTo(point)
+
+            def curveTo(self, *points):
+                recording.pen_calls.append(("curveTo", points))
+                delegate.curveTo(*points)
+
+            def closePath(self):
+                recording.pen_calls.append(("closePath", ()))
+                delegate.closePath()
+
+        return RecordingPen()
 
 
 class LiveFontProxy:
@@ -763,6 +798,84 @@ def test_live_wrapper_glyphs_are_replaced_in_place_and_documents_are_dirtied(liv
     assert intact.naked().dirty
     assert eroded.naked().dirty
     assert project.data["processedGlyphs"]["O"]["status"] == "processed"
+
+
+def test_live_segment_pen_preserves_cubics_in_both_ufo_masters_after_reopen(tmp_path, caplog):
+    segments = (
+        CubicSegment((0, 100), (-35, 75), (-35, 25), (0, 0)),
+        LineSegment((0, 0), (100, 0)),
+        LineSegment((100, 0), (0, 100)),
+    )
+
+    def master(role, x_offset):
+        shifted = tuple(
+            CubicSegment(
+                (segment.start[0] + x_offset, segment.start[1]),
+                (segment.control1[0] + x_offset, segment.control1[1]),
+                (segment.control2[0] + x_offset, segment.control2[1]),
+                (segment.end[0] + x_offset, segment.end[1]),
+            )
+            if isinstance(segment, CubicSegment)
+            else LineSegment(
+                (segment.start[0] + x_offset, segment.start[1]),
+                (segment.end[0] + x_offset, segment.end[1]),
+            )
+            for segment in segments
+        )
+        contour = MasterContour(
+            identifier=f"fragment-{role}",
+            fragment_id="fragment-0",
+            part_index=0,
+            is_hole=False,
+            points=tuple(segment.end for segment in shifted),
+            point_ids=tuple(f"fragment-{role}-p{index}" for index in range(3)),
+            segments=shifted,
+        )
+        return MasterGlyph("testCurve", 500, (), (contour,))
+
+    expected_methods = ["moveTo", "curveTo", "lineTo", "lineTo", "closePath"]
+    reopened_counts = {}
+    reopened_structures = {}
+    with caplog.at_level("INFO", logger="fracturize.live_project"):
+        for role, x_offset in (("intact", 0), ("eroded", 12)):
+            font = Font()
+            glyph = font.newGlyph("testCurve")
+            live_glyph = RecordingLiveGlyphProxy(glyph)
+            generated = master(role, x_offset)
+
+            _draw_live_outline_only(live_glyph, generated, {})
+
+            assert _glyph_segment_counts(live_glyph) == {"cubic": 1, "line": 2}
+            assert [method for method, arguments in live_glyph.pen_calls] == expected_methods
+            path = tmp_path / f"{role}.ufo"
+            font.save(path)
+            font.close()
+            reopened = Font(path)
+            reopened_counts[role] = _log_glyph_segment_counts(
+                reopened["testCurve"],
+                glyph_name="testCurve",
+                stage=f"{role}_save_reopen",
+            )
+            reopened_structures[role] = tuple(
+                segment[-1].segmentType
+                for contour in reopened["testCurve"]
+                for segment in contour.segments
+            )
+            reopened.close()
+
+    assert reopened_counts == {
+        "intact": {"cubic": 1, "line": 2},
+        "eroded": {"cubic": 1, "line": 2},
+    }
+    assert reopened_structures == {
+        "intact": ("curve", "line", "line"),
+        "eroded": ("curve", "line", "line"),
+    }
+    assert "generated_cubic=1 generated_line=2" in caplog.text
+    assert "'curveTo'" in caplog.text
+    assert "live_cubic=1 live_line=2" in caplog.text
+    assert "stage=intact_save_reopen cubic=1 line=2" in caplog.text
+    assert "stage=eroded_save_reopen cubic=1 line=2" in caplog.text
 
 
 def test_live_wrapper_failure_restores_both_sides_in_place_before_project_commit(live_controller):

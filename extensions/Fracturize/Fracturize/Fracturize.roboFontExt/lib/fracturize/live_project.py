@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import math
 import os
 import uuid
@@ -36,6 +37,9 @@ from .model import (
 from .topology import read_topology, topology_digest, write_topology
 from .ufo import LIB_KEY, master_from_glyph
 from .validation import validate_pair
+
+
+logger = logging.getLogger(__name__)
 
 
 LIVE_PROJECT_FORMAT = "com.fracturize.live-project"
@@ -340,7 +344,7 @@ def validate_working_font_pair(intact_font, eroded_font):
 
 
 def _draw_outline_only(glyph, master: MasterGlyph, metadata: dict):
-    """Replace the default-layer outline on the supplied live glyph object."""
+    """Draw a non-live outline, including the unchanged preview path."""
 
     glyph.clearContours()
     glyph.clearComponents()
@@ -372,6 +376,107 @@ def _draw_outline_only(glyph, master: MasterGlyph, metadata: dict):
     glyph.lib[LIB_KEY] = fragment_map
     glyph.lib.update(metadata)
     _mark_changed(glyph)
+
+
+def _draw_live_outline_only(glyph, master: MasterGlyph, metadata: dict):
+    """Replace the default-layer outline on the supplied live glyph object."""
+
+    glyph.clearContours()
+    glyph.clearComponents()
+    pen = glyph.getPen()
+    pen_calls = []
+    fragment_map = []
+    for contour in master.contours:
+        segments = master_contour_segments(contour)
+        if not segments:
+            continue
+        pen.moveTo(segments[0].start)
+        pen_calls.append(("moveTo", (segments[0].start,)))
+        for segment in segments:
+            if isinstance(segment, CubicSegment):
+                arguments = (segment.control1, segment.control2, segment.end)
+                pen.curveTo(*arguments)
+                pen_calls.append(("curveTo", arguments))
+            else:
+                pen.lineTo(segment.end)
+                pen_calls.append(("lineTo", (segment.end,)))
+        pen.closePath()
+        pen_calls.append(("closePath", ()))
+        fragment_map.append(
+            {
+                "contourID": contour.identifier,
+                "fragmentID": contour.fragment_id,
+                "partIndex": contour.part_index,
+                "isHole": contour.is_hole,
+            }
+        )
+
+    # Segment pens are the reliable RoboFont boundary for cubic commands, but
+    # the protocol has no identifier arguments. Restore the generated IDs on
+    # the contours and on-curve points immediately after drawing.
+    drawn_contours = list(_native(glyph))
+    if len(drawn_contours) != len(master.contours):
+        raise LiveProjectError(
+            f"live pen wrote {len(drawn_contours)} contours; expected {len(master.contours)}"
+        )
+    for drawn, generated in zip(drawn_contours, master.contours):
+        drawn.identifier = generated.identifier
+        drawn_segments = list(drawn.segments)
+        if len(drawn_segments) != len(generated.point_ids):
+            raise LiveProjectError(
+                f"live pen wrote {len(drawn_segments)} segments in {generated.identifier}; "
+                f"expected {len(generated.point_ids)}"
+            )
+        for drawn_segment, point_id in zip(drawn_segments, generated.point_ids):
+            drawn_segment[-1].identifier = point_id
+
+    glyph.lib[LIB_KEY] = fragment_map
+    glyph.lib.update(metadata)
+    _mark_changed(glyph)
+    generated_counts = _master_segment_counts(master)
+    live_counts = _log_glyph_segment_counts(glyph, glyph_name=master.name, stage="live")
+    logger.info(
+        "live outline write glyph=%s generated_cubic=%d generated_line=%d "
+        "pen_calls=%r live_cubic=%d live_line=%d",
+        master.name,
+        generated_counts["cubic"],
+        generated_counts["line"],
+        pen_calls,
+        live_counts["cubic"],
+        live_counts["line"],
+    )
+
+
+def _master_segment_counts(master: MasterGlyph):
+    counts = {"cubic": 0, "line": 0}
+    for contour in master.contours:
+        for segment in master_contour_segments(contour):
+            counts["cubic" if isinstance(segment, CubicSegment) else "line"] += 1
+    return counts
+
+
+def _glyph_segment_counts(glyph):
+    counts = {"cubic": 0, "line": 0}
+    for contour in _native(glyph):
+        for segment in contour.segments:
+            segment_type = segment[-1].segmentType
+            if segment_type == "curve":
+                counts["cubic"] += 1
+            elif segment_type == "line":
+                counts["line"] += 1
+    return counts
+
+
+def _log_glyph_segment_counts(glyph, *, glyph_name, stage):
+    counts = _glyph_segment_counts(glyph)
+    logger.info(
+        "outline segment counts glyph=%s stage=%s cubic=%d line=%d",
+        glyph_name,
+        stage,
+        counts["cubic"],
+        counts["line"],
+    )
+    return counts
 
 
 def _glyph_snapshot(glyph):
@@ -827,11 +932,11 @@ class LiveFractureProject:
                 SOURCE_FINGERPRINT_KEY: source_digest,
                 TOPOLOGY_DIGEST_KEY: topology_hash,
             }
-            _draw_outline_only(target_glyphs["intact"], result.intact, metadata)
+            _draw_live_outline_only(target_glyphs["intact"], result.intact, metadata)
             _notify_live_font_changed(self.intact_font)
             if save_hook:
                 save_hook("after_intact_write")
-            _draw_outline_only(target_glyphs["eroded"], result.eroded, metadata)
+            _draw_live_outline_only(target_glyphs["eroded"], result.eroded, metadata)
             _notify_live_font_changed(self.eroded_font)
             if save_hook:
                 save_hook("after_eroded_write")

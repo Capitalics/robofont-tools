@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import replace
 import math
+import random
 from time import perf_counter
 
 import pytest
@@ -11,6 +13,7 @@ from fracturize import GenerationSettings, generate_pair
 from fracturize.core import (
     MOTION_ALGORITHM_V1,
     MOTION_ALGORITHM_VERSION,
+    _roughen_span,
     boundary_point_provenance,
     complexity_profile,
     derive_effective_seed,
@@ -27,7 +30,7 @@ from fracturize.geometry import (
     master_contours_to_union,
     normalize_outline,
 )
-from fracturize.model import MasterContour, MasterGlyph
+from fracturize.model import CubicSegment, LineSegment, MasterContour, MasterGlyph
 from fracturize.validation import validate_pair
 
 
@@ -259,7 +262,7 @@ def test_rough_profile_preserves_macro_endpoints_and_shared_junctions():
     macro = generate_macro_crack_mesh(silhouette, profile, seed, outline.units_per_em)
     rough = generate_crack_mesh(silhouette, profile, seed, outline.units_per_em)
     assert len(macro) == len(rough)
-    assert sum(len(line.coords) for line in rough) > sum(len(line.coords) for line in macro) * 2
+    assert sum(len(line.coords) for line in rough) > sum(len(line.coords) for line in macro)
     assert all(line.is_simple for line in rough)
     parameters = edge_profile_parameters(75, outline.units_per_em)
     assert min(
@@ -283,17 +286,53 @@ def test_rough_profile_preserves_macro_endpoints_and_shared_junctions():
         )
 
 
-def test_edge_profile_parameters_are_bounded_and_rock_detail_increases_non_linearly():
+def test_edge_profile_parameters_change_only_active_point_density():
     low = edge_profile_parameters(0, 1000)
     middle = edge_profile_parameters(50, 1000)
     high = edge_profile_parameters(100, 1000)
-    assert 8 <= low.edge_subdivision_density < middle.edge_subdivision_density < high.edge_subdivision_density <= 38
-    assert 1 <= low.lateral_deviation_amplitude < high.lateral_deviation_amplitude <= 14
-    assert 0.15 <= low.segment_length_variation <= high.segment_length_variation <= 0.5
-    assert 0 < low.sharp_corner_probability < high.sharp_corner_probability < 0.2
-    assert 0 < low.local_notch_probability < high.local_notch_probability < 0.1
-    assert 0 < high.simplification_threshold < low.simplification_threshold < 3
-    assert 7 <= high.minimum_segment_length < low.minimum_segment_length <= 14
+    assert 8 <= low.edge_subdivision_density < middle.edge_subdivision_density < high.edge_subdivision_density <= 100
+    assert low.lateral_deviation_amplitude == middle.lateral_deviation_amplitude == high.lateral_deviation_amplitude
+    assert low.segment_length_variation == middle.segment_length_variation == high.segment_length_variation
+    assert low.sharp_corner_probability == middle.sharp_corner_probability == high.sharp_corner_probability
+    assert low.local_notch_probability == middle.local_notch_probability == high.local_notch_probability
+    assert low.simplification_threshold == middle.simplification_threshold == high.simplification_threshold
+    assert low.minimum_segment_length == middle.minimum_segment_length == high.minimum_segment_length
+
+
+def test_short_span_amplitude_floor_changes_only_perpendicular_offsets():
+    parameters = edge_profile_parameters(100, 1000)
+    arguments = (
+        Point(0, 0),
+        Point(45, 0),
+        parameters,
+    )
+    straight = _roughen_span(
+        *arguments,
+        random.Random(1742),
+        1000,
+        1.0,
+        100,
+        offset_scale=lambda point: 0.0,
+    )
+    rough = _roughen_span(
+        *arguments,
+        random.Random(1742),
+        1000,
+        1.0,
+        100,
+        offset_scale=lambda point: 1.0,
+    )
+
+    assert len(rough) == len(straight)
+    assert [point[0] for point in rough] == [point[0] for point in straight]
+    assert rough[0] == straight[0] == (0, 0)
+    assert rough[-1] == straight[-1] == (45, 0)
+    assert max(abs(point[1]) for point in rough[1:-1]) >= 1.0
+    assert max(abs(point[1]) for point in rough) <= 45 * 0.30 * 2.2
+    assert min(
+        math.dist(first, second)
+        for first, second in zip(rough, rough[1:])
+    ) >= parameters.minimum_segment_length
 
 
 def test_rock_edge_detail_changes_only_micro_mesh_for_fixed_macro_seed():
@@ -309,14 +348,28 @@ def test_rock_edge_detail_changes_only_micro_mesh_for_fixed_macro_seed():
     seed = derive_effective_seed(base, outline.name)
     macro = generate_macro_crack_mesh(silhouette, profile, seed, outline.units_per_em)
     low = generate_crack_mesh(silhouette, profile, seed, outline.units_per_em, 0)
+    middle = generate_crack_mesh(silhouette, profile, seed, outline.units_per_em, 50)
     high = generate_crack_mesh(silhouette, profile, seed, outline.units_per_em, 100)
 
+    point_sets = [
+        {coordinate for line in mesh for coordinate in line.coords}
+        for mesh in (low, middle, high)
+    ]
+
     assert derive_effective_seed(replace(base, rock_edge_detail=100), outline.name) == seed
-    assert len(low) == len(high) == len(macro)
+    assert len(low) == len(middle) == len(high) == len(macro)
     assert [line.coords[0] for line in low] == [line.coords[0] for line in high]
     assert [line.coords[-1] for line in low] == [line.coords[-1] for line in high]
-    assert sum(len(line.coords) for line in high) > sum(len(line.coords) for line in low)
-    assert [line.wkb for line in high] != [line.wkb for line in low]
+    assert point_sets[0] < point_sets[1] < point_sets[2]
+    assert all(
+        coordinate in point_sets[0]
+        for line in macro
+        for coordinate in line.coords
+        if silhouette.covers(Point(coordinate))
+    )
+    counts = [sum(len(line.coords) for line in mesh) for mesh in (low, middle, high)]
+    assert counts == sorted(counts)
+    assert counts[2] - counts[0] >= 10
 
 
 @pytest.mark.parametrize("detail", (0, 25, 50, 75, 100))
@@ -411,12 +464,100 @@ def test_rock_edge_detail_preserves_fragment_identity_metrics_adjacency_and_moti
             ).length > 1e-7
         )
 
+    def internal_points(result):
+        def stable(point):
+            return tuple(round(value, 9) for value in point)
+
+        line_uses = Counter(
+            tuple(sorted((stable(segment.start), stable(segment.end))))
+            for contour in result.intact.contours
+            for segment in contour.segments
+            if isinstance(segment, LineSegment)
+        )
+        return {
+            point
+            for edge, uses in line_uses.items()
+            if uses == 2
+            for point in edge
+        }
+
+    def exterior_cubics(result):
+        return tuple(
+            tuple(
+                tuple(round(value, 9) for value in point)
+                for point in (
+                    segment.start,
+                    segment.control1,
+                    segment.control2,
+                    segment.end,
+                )
+            )
+            for contour in result.intact.contours
+            for segment in contour.segments
+            if isinstance(segment, CubicSegment)
+        )
+
+    def stable_point(point):
+        return tuple(round(value, 9) for value in point)
+
+    def shared_edge_profiles(result):
+        segment_fragments = {}
+        segment_geometry = {}
+        for fragment in result.fragments:
+            for contour in fragment.intact_contours:
+                for segment in contour.segments:
+                    if not isinstance(segment, LineSegment):
+                        continue
+                    key = tuple(
+                        sorted((stable_point(segment.start), stable_point(segment.end)))
+                    )
+                    segment_fragments.setdefault(key, set()).add(fragment.identifier)
+                    segment_geometry[key] = segment
+        profiles = {}
+        for key, fragment_ids in segment_fragments.items():
+            if len(fragment_ids) != 2:
+                continue
+            pair = tuple(sorted(fragment_ids))
+            record = profiles.setdefault(pair, {"points": set(), "length": 0.0})
+            record["points"].update(key)
+            record["length"] += math.dist(
+                segment_geometry[key].start,
+                segment_geometry[key].end,
+            )
+        return profiles, segment_fragments
+
     assert all(
         identity_and_metrics(result) == identity_and_metrics(results[0])
         for result in results[1:]
     )
     assert all(motion(result) == motion(results[0]) for result in results[1:])
     assert all(adjacency(result) == adjacency(results[0]) for result in results[1:])
+    internal_point_sets = [internal_points(result) for result in results]
+    assert internal_point_sets[0] < internal_point_sets[1] < internal_point_sets[2]
+    assert exterior_cubics(results[0]) == exterior_cubics(results[1]) == exterior_cubics(results[2])
+    shared_profiles = [shared_edge_profiles(result)[0] for result in results]
+    assert shared_profiles[0].keys() == shared_profiles[1].keys() == shared_profiles[2].keys()
+    for pair in shared_profiles[0]:
+        low = shared_profiles[0][pair]
+        middle = shared_profiles[1][pair]
+        high = shared_profiles[2][pair]
+        assert low["points"] <= middle["points"] <= high["points"]
+        if low["length"] >= 15:
+            assert low["points"] < high["points"]
+            assert len(high["points"]) >= math.floor(low["length"] / 14) + 1
+    for result in results:
+        _, segment_fragments = shared_edge_profiles(result)
+        assert {len(fragment_ids) for fragment_ids in segment_fragments.values()} == {2}
+    all_point_sets = [
+        {
+            tuple(round(value, 9) for value in point)
+            for contour in result.intact.contours
+            for point in contour.points
+        }
+        for result in results
+    ]
+    assert all_point_sets[1] - all_point_sets[0] <= internal_point_sets[1]
+    assert all_point_sets[2] - all_point_sets[1] <= internal_point_sets[2]
     assert len({result.intact for result in results}) == 3
     assert [
         sum(len(contour.points) for contour in result.intact.contours)

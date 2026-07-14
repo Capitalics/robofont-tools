@@ -56,11 +56,10 @@ class EdgeProfileParameters:
 
 
 def edge_profile_parameters(rock_edge_detail: int, upm: float) -> EdgeProfileParameters:
-    """Map 0..100 detail to a guarded, non-linear micro-edge profile.
+    """Map 0..100 detail to a guarded micro-edge point density.
 
-    The macro fracture profile is intentionally absent from this mapping.
-    Smoothstep makes the extremes useful without making the middle of the
-    slider hypersensitive, while hard caps limit point counts and short edges.
+    Detail controls only how many points from the stable maximum profile are
+    active. All values which determine candidate geometry remain constant.
     """
 
     if isinstance(rock_edge_detail, bool) or not isinstance(rock_edge_detail, int):
@@ -70,16 +69,13 @@ def edge_profile_parameters(rock_edge_detail: int, upm: float) -> EdgeProfilePar
     linear = rock_edge_detail / 100.0
     normalized = linear * linear * (3.0 - 2.0 * linear)
     return EdgeProfileParameters(
-        edge_subdivision_density=8.0 + 30.0 * normalized,
-        # Edge treatment must stay local to the existing crack. A six-unit
-        # cap at 1000 UPM is enough to read as chipped rock without visibly
-        # shifting the canonical fragments.
-        lateral_deviation_amplitude=upm * (0.0015 + 0.0045 * normalized),
-        segment_length_variation=0.18 + 0.30 * normalized,
-        sharp_corner_probability=0.015 + 0.145 * normalized,
-        local_notch_probability=0.003 + 0.077 * normalized**1.2,
-        simplification_threshold=upm * (0.0022 - 0.00175 * normalized),
-        minimum_segment_length=upm * (0.014 - 0.007 * normalized),
+        edge_subdivision_density=8.0 + 92.0 * normalized,
+        lateral_deviation_amplitude=upm * 0.006,
+        segment_length_variation=0.48,
+        sharp_corner_probability=0.16,
+        local_notch_probability=0.08,
+        simplification_threshold=upm * 0.00045,
+        minimum_segment_length=upm * 0.003,
     )
 
 
@@ -410,6 +406,39 @@ def _mesh_incidence_graph(lines: tuple[LineString, ...]) -> tuple[bool, ...]:
     )
 
 
+def _intersection_signature(first: LineString, second: LineString) -> tuple:
+    intersection = first.intersection(second)
+    return (
+        intersection.geom_type,
+        len(_point_intersections(intersection)),
+        round(intersection.length, 7),
+    )
+
+
+def _mesh_intersection_signature(lines: tuple[LineString, ...]) -> tuple[tuple, ...]:
+    signature = []
+    for first, line in enumerate(lines):
+        for other in lines[:first]:
+            signature.append(_intersection_signature(line, other))
+    return tuple(signature)
+
+
+def _point_intersections(geometry) -> tuple[Point, ...]:
+    if geometry.is_empty:
+        return ()
+    if geometry.geom_type == "Point":
+        return (geometry,)
+    if geometry.geom_type == "MultiPoint":
+        return tuple(geometry.geoms)
+    if geometry.geom_type == "GeometryCollection":
+        return tuple(
+            point
+            for part in geometry.geoms
+            for point in _point_intersections(part)
+        )
+    return ()
+
+
 def _roughen_span(
     start: Point,
     end: Point,
@@ -417,6 +446,8 @@ def _roughen_span(
     rng: random.Random,
     upm: float,
     amplitude_scale: float,
+    rock_edge_detail: int,
+    offset_scale=None,
 ) -> list[tuple[float, float]]:
     dx = end.x - start.x
     dy = end.y - start.y
@@ -425,7 +456,10 @@ def _roughen_span(
         return [(start.x, start.y), (end.x, end.y)]
     direction = (dx / length, dy / length)
     normal = (-direction[1], direction[0])
-    nominal_length = upm / parameters.edge_subdivision_density
+    # Always construct the same maximum-detail candidates. Detail only filters
+    # this sequence after every coordinate and displacement has been fixed.
+    maximum_density = edge_profile_parameters(100, upm).edge_subdivision_density
+    nominal_length = upm / maximum_density
     distances = [0.0]
     cursor = 0.0
     while length - cursor > nominal_length * 1.35:
@@ -440,13 +474,30 @@ def _roughen_span(
         distances.append(cursor)
     distances.append(length)
 
-    points = [(start.x, start.y)]
+    candidates = []
+    candidate_distances = []
     previous_offset = 0.0
     previous_distance = 0.0
     notch_rebound = 0.0
+    normalized_length = min(1.0, length / (upm * 0.12))
+    smooth_length = normalized_length * normalized_length * (3.0 - 2.0 * normalized_length)
+    visible_floor = upm * 0.005
+    nominal_amplitude = upm * 0.006
+    safety_scale = parameters.lateral_deviation_amplitude / nominal_amplitude
+    length_scaled_amplitude = visible_floor + (
+        nominal_amplitude - visible_floor
+    ) * smooth_length
+    span_amplitude = min(length_scaled_amplitude, length * 0.30) * safety_scale
     for distance in distances[1:-1]:
-        amplitude = parameters.lateral_deviation_amplitude * amplitude_scale
-        independent = rng.uniform(-amplitude, amplitude)
+        amplitude = span_amplitude * amplitude_scale
+        random_offset = rng.uniform(-1.0, 1.0)
+        minimum_offset_fraction = 0.30 * (1.0 - smooth_length)
+        offset_fraction = math.copysign(
+            minimum_offset_fraction
+            + (1.0 - minimum_offset_fraction) * abs(random_offset),
+            random_offset,
+        )
+        independent = amplitude * offset_fraction
         offset = previous_offset * rng.uniform(0.12, 0.48) + independent
         if notch_rebound:
             offset += notch_rebound
@@ -465,39 +516,88 @@ def _roughen_span(
         local_distance = max(previous_distance + parameters.minimum_segment_length, local_distance)
         if local_distance >= length - parameters.minimum_segment_length * 0.5:
             continue
-        candidate = (
-            start.x + direction[0] * local_distance + normal[0] * offset,
-            start.y + direction[1] * local_distance + normal[1] * offset,
+        base_point = (
+            start.x + direction[0] * local_distance,
+            start.y + direction[1] * local_distance,
         )
-        if math.hypot(candidate[0] - points[-1][0], candidate[1] - points[-1][1]) < parameters.minimum_segment_length:
-            continue
-        points.append(candidate)
+        local_scale = offset_scale(base_point) if offset_scale is not None else 1.0
+        offset *= local_scale
+        candidate = (
+            base_point[0] + normal[0] * offset,
+            base_point[1] + normal[1] * offset,
+        )
+        candidates.append(candidate)
+        candidate_distances.append(local_distance)
         previous_offset = offset
         previous_distance = local_distance
-    while len(points) > 1 and math.hypot(end.x - points[-1][0], end.y - points[-1][1]) < parameters.minimum_segment_length:
-        points.pop()
-    points.append((end.x, end.y))
-    simplified = LineString(points).simplify(
-        parameters.simplification_threshold,
-        preserve_topology=True,
+    while candidates and math.hypot(
+        end.x - candidates[-1][0], end.y - candidates[-1][1]
+    ) < parameters.minimum_segment_length:
+        candidates.pop()
+        candidate_distances.pop()
+
+    # Activate candidates from coarse to fine. At each rank, select the point
+    # furthest from the already active distances, so low values retain long,
+    # well-distributed segments and every higher value is a strict superset.
+    remaining = set(range(len(candidates)))
+    active_distances = [0.0, length]
+    activation_rank = {}
+    while remaining:
+        selected = max(
+            remaining,
+            key=lambda index: (
+                min(
+                    abs(candidate_distances[index] - active)
+                    for active in active_distances
+                ),
+                -index,
+            ),
+        )
+        activation_rank[selected] = len(activation_rank) + 1
+        active_distances.append(candidate_distances[selected])
+        remaining.remove(selected)
+    activation_thresholds = {
+        index: math.ceil(rank * 100 / len(candidates))
+        for index, rank in activation_rank.items()
+    }
+    points = [(start.x, start.y)]
+    points.extend(
+        candidate
+        for index, candidate in enumerate(candidates)
+        if activation_thresholds[index] <= rock_edge_detail
     )
-    return list(simplified.coords)
+    points.append((end.x, end.y))
+    return points
 
 
 def _roughen_crack_mesh_once(
     macro_lines: tuple[LineString, ...],
+    silhouette,
     profile: ComplexityProfile,
     seed: int,
     upm: float,
     *,
+    rock_edge_detail: int,
     parameters: EdgeProfileParameters | None = None,
 ) -> tuple[LineString, ...]:
     """Apply micro-edge detail while preserving endpoints and mesh junctions."""
+    if rock_edge_detail == 0:
+        return macro_lines
     parameters = parameters or edge_profile_parameters(profile.value, upm)
+    boundary_guard = 2.2 * upm / edge_profile_parameters(
+        100,
+        upm,
+    ).edge_subdivision_density
     junctions = tuple(
         Point(coordinate)
         for line in macro_lines
         for coordinate in (line.coords[0], line.coords[-1])
+    ) + tuple(
+        point
+        for first, line in enumerate(macro_lines)
+        for other in macro_lines[:first]
+        for point in _point_intersections(line.intersection(other))
+        if silhouette.covers(point)
     )
     roughened = []
     for line_index, line in enumerate(macro_lines):
@@ -511,20 +611,86 @@ def _roughen_crack_mesh_once(
             payload = (
                 f"rough-edge-v1|{seed}|{line_index}|{attempt}|{line.normalize().wkb_hex}"
             )
-            rng = random.Random(int.from_bytes(hashlib.sha256(payload.encode("ascii")).digest()[:8], "big"))
-            coordinates = []
-            for (_, start), (_, end) in zip(break_points, break_points[1:]):
-                span = _roughen_span(
-                    start,
-                    end,
-                    parameters,
-                    rng,
-                    upm,
-                    amplitude_scale=0.55**attempt,
+            edge_seed = int.from_bytes(
+                hashlib.sha256(payload.encode("ascii")).digest()[:8], "big"
+            )
+
+            def build(detail):
+                rng = random.Random(edge_seed)
+                coordinates = []
+                for (_, start), (_, end) in zip(break_points, break_points[1:]):
+                    span_line = LineString(
+                        ((start.x, start.y), (end.x, end.y))
+                    )
+                    boundary_intersection = span_line.intersection(
+                        silhouette.boundary
+                    )
+                    boundary_crossings = _point_intersections(
+                        boundary_intersection
+                    )
+                    follows_boundary = (
+                        boundary_intersection.length > 1e-7
+                    )
+                    span_boundary_distance = span_line.distance(
+                        silhouette.boundary
+                    )
+
+                    def interior_offset_scale(base_point):
+                        point = Point(base_point)
+                        if not silhouette.covers(point):
+                            return 0.0
+                        if follows_boundary:
+                            return 0.0
+                        if (
+                            not boundary_crossings
+                            and span_boundary_distance > upm * 0.001
+                        ):
+                            return 1.0
+                        distance = (
+                            min(
+                                point.distance(crossing)
+                                for crossing in boundary_crossings
+                            )
+                            if boundary_crossings
+                            else point.distance(silhouette.boundary)
+                        )
+                        if distance <= boundary_guard:
+                            return 0.0
+                        fade = min(1.0, (distance - boundary_guard) / boundary_guard)
+                        return fade * fade * (3.0 - 2.0 * fade)
+
+                    span = _roughen_span(
+                        start,
+                        end,
+                        parameters,
+                        rng,
+                        upm,
+                        amplitude_scale=0.55**attempt,
+                        rock_edge_detail=detail,
+                        offset_scale=interior_offset_scale,
+                    )
+                    coordinates.extend(span if not coordinates else span[1:])
+                return LineString(coordinates)
+
+            maximum_candidate = build(100)
+            comparison_lines = (
+                *enumerate(roughened),
+                *(
+                    (other_index, macro_lines[other_index])
+                    for other_index in range(line_index + 1, len(macro_lines))
+                ),
+            )
+            intersections_stable = all(
+                _intersection_signature(maximum_candidate, other)
+                == _intersection_signature(line, macro_lines[other_index])
+                for other_index, other in comparison_lines
+            )
+            if maximum_candidate.is_simple and intersections_stable:
+                candidate = (
+                    maximum_candidate
+                    if rock_edge_detail == 100
+                    else build(rock_edge_detail)
                 )
-                coordinates.extend(span if not coordinates else span[1:])
-            candidate = LineString(coordinates)
-            if candidate.is_simple:
                 break
         if not candidate.is_simple:
             candidate = line
@@ -651,6 +817,24 @@ def _profiled_crack_topology(
     macro_pieces = _topology_from_crack_lines(silhouette, profile, macro_lines, upm)
     parameters = edge_profile_parameters(rock_edge_detail, upm)
     macro_intersections = _mesh_incidence_graph(macro_lines)
+    macro_intersection_signature = _mesh_intersection_signature(macro_lines)
+
+    def mapped_profile(lines):
+        if _mesh_incidence_graph(lines) != macro_intersections:
+            return None
+        if _mesh_intersection_signature(lines) != macro_intersection_signature:
+            return None
+        try:
+            pieces = _topology_from_crack_lines(
+                silhouette,
+                profile,
+                lines,
+                upm,
+            )
+        except RuntimeError:
+            return None
+        return _map_profiled_pieces_to_macro(macro_pieces, pieces)
+
     for attempt in range(10):
         scaled = replace(
             parameters,
@@ -661,25 +845,48 @@ def _profiled_crack_topology(
                 parameters.simplification_threshold * 0.5**attempt
             ),
         )
-        candidate_lines = _roughen_crack_mesh_once(
+        maximum_lines = _roughen_crack_mesh_once(
             macro_lines,
+            silhouette,
             profile,
             seed,
             upm,
+            rock_edge_detail=100,
             parameters=scaled,
         )
-        if _mesh_incidence_graph(candidate_lines) != macro_intersections:
+        maximum_mapped = mapped_profile(maximum_lines)
+        if maximum_mapped is None:
             continue
-        try:
-            candidate_pieces = _topology_from_crack_lines(
+        # Choose amplitude fallback from fixed reference schedules, never from
+        # the requested Detail value. This keeps every slider value on the
+        # same candidate coordinates and activation thresholds.
+        midpoint_lines = _roughen_crack_mesh_once(
+            macro_lines,
+            silhouette,
+            profile,
+            seed,
+            upm,
+            rock_edge_detail=50,
+            parameters=scaled,
+        )
+        if mapped_profile(midpoint_lines) is None:
+            continue
+        candidate_lines = (
+            maximum_lines
+            if rock_edge_detail == 100
+            else midpoint_lines
+            if rock_edge_detail == 50
+            else _roughen_crack_mesh_once(
+                macro_lines,
                 silhouette,
                 profile,
-                candidate_lines,
+                seed,
                 upm,
+                rock_edge_detail=rock_edge_detail,
+                parameters=scaled,
             )
-        except RuntimeError:
-            continue
-        mapped = _map_profiled_pieces_to_macro(macro_pieces, candidate_pieces)
+        )
+        mapped = mapped_profile(candidate_lines)
         if mapped is not None:
             return candidate_lines, mapped
     return macro_lines, macro_pieces
