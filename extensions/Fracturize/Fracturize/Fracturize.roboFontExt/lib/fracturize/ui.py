@@ -5,7 +5,7 @@ import traceback
 
 from AppKit import NSColor
 from Foundation import NSDate, NSRunLoop
-from PyObjCTools.AppHelper import callAfter
+from PyObjCTools.AppHelper import callAfter, callLater
 from mojo.events import addObserver, removeObserver
 from mojo.glyphPreview import GlyphPreview
 from vanilla import (
@@ -24,6 +24,10 @@ from .geometry import interpolate_contours
 from .model import MasterGlyph
 from .robofont_adapter import RoboFontEnvironment, master_to_preview_glyph
 
+# Long enough that a continuous slider drag never regenerates mid-gesture,
+# short enough to feel immediate once the drag settles.
+TOPOLOGY_SLIDER_DEBOUNCE_SECONDS = 0.25
+
 
 class FracturizeWindowController:
     observer_events = (
@@ -40,6 +44,10 @@ class FracturizeWindowController:
         self._batch_decompose_components = False
         self._batch_cancelled = False
         self._batch_integrity_error_shown = False
+        self._batch_running = False
+        self._closed = False
+        self._topology_debounce_token = 0
+        self._topology_compatibility_message = ""
         self._build_window()
         for event in self.observer_events:
             addObserver(self, "roboFontEvent", event)
@@ -396,59 +404,65 @@ class FracturizeWindowController:
         }
 
     def complexityCallback(self, sender):
-        raw_value = sender.get()
-        value = round(raw_value)
-        self.w.complexityValue.set(str(value))
-        if self.controller.project:
-            try:
-                glyph_name = self._current_preview_name()
-                self.controller.set_complexity_from_slider(
-                    raw_value,
-                    glyph_name=glyph_name,
-                )
-                self.previewCurrent(regenerate_topology=True)
-                self.w.compatibility.set("Topology change: explicit regeneration required")
-                self.refresh_ui()
-            except Exception as error:
-                self._log(error)
+        self.w.complexityValue.set(str(round(sender.get())))
+        self._schedule_topology_update("Topology change: explicit regeneration required")
 
     def rockEdgeDetailCallback(self, sender):
-        raw_value = sender.get()
-        value = round(raw_value)
-        self.w.edgeDetailValue.set(str(value))
-        if self.controller.project:
-            try:
-                glyph_name = self._current_preview_name()
-                self.controller.set_rock_edge_detail_from_slider(
-                    raw_value,
-                    glyph_name=glyph_name,
-                )
-                self.previewCurrent(regenerate_topology=True)
-                self.w.compatibility.set(
-                    "Rock Edge Detail change: explicit regeneration required"
-                )
-                self.refresh_ui()
-            except Exception as error:
-                self._log(error)
+        self.w.edgeDetailValue.set(str(round(sender.get())))
+        self._schedule_topology_update(
+            "Rock Edge Detail change: explicit regeneration required"
+        )
 
     def rockEdgeRoughnessCallback(self, sender):
-        raw_value = sender.get()
-        value = round(raw_value)
-        self.w.edgeRoughnessValue.set(str(value))
-        if self.controller.project:
-            try:
-                glyph_name = self._current_preview_name()
-                self.controller.set_rock_edge_roughness_from_slider(
-                    raw_value,
-                    glyph_name=glyph_name,
-                )
-                self.previewCurrent(regenerate_topology=True)
-                self.w.compatibility.set(
-                    "Rock Edge Roughness change: explicit regeneration required"
-                )
-                self.refresh_ui()
-            except Exception as error:
-                self._log(error)
+        self.w.edgeRoughnessValue.set(str(round(sender.get())))
+        self._schedule_topology_update(
+            "Rock Edge Roughness change: explicit regeneration required"
+        )
+
+    def _schedule_topology_update(self, compatibility_message):
+        """Coalesce continuous slider drags into one deferred regeneration."""
+
+        if not self.controller.project:
+            return
+        self._topology_compatibility_message = compatibility_message
+        self._topology_debounce_token += 1
+        callLater(
+            TOPOLOGY_SLIDER_DEBOUNCE_SECONDS,
+            self._apply_topology_sliders,
+            self._topology_debounce_token,
+        )
+
+    def _apply_topology_sliders(self, token):
+        if self._closed or token != self._topology_debounce_token:
+            return
+        if not self.controller.project:
+            return
+        if self._batch_running:
+            callLater(
+                TOPOLOGY_SLIDER_DEBOUNCE_SECONDS,
+                self._apply_topology_sliders,
+                token,
+            )
+            return
+        try:
+            glyph_name = self._current_preview_name()
+            self.controller.set_complexity_from_slider(
+                self.w.complexity.get(),
+                glyph_name=glyph_name,
+            )
+            self.controller.set_rock_edge_detail_from_slider(
+                self.w.edgeDetail.get(),
+                glyph_name=glyph_name,
+            )
+            self.controller.set_rock_edge_roughness_from_slider(
+                self.w.edgeRoughness.get(),
+                glyph_name=glyph_name,
+            )
+            self.previewCurrent(regenerate_topology=True)
+            self.w.compatibility.set(self._topology_compatibility_message)
+            self.refresh_ui()
+        except Exception as error:
+            self._log(error)
 
     def seedCallback(self, sender):
         if self.controller.project:
@@ -574,6 +588,7 @@ class FracturizeWindowController:
         )
 
     def _set_batch_running(self, running):
+        self._batch_running = running
         for name in (
             "generate",
             "preview",
@@ -744,6 +759,14 @@ class FracturizeWindowController:
             self._log("Failed glyphs: " + ", ".join(name for name, reason in result["failed"]))
         if result["cancelled"]:
             self._log("Batch cancelled; completed glyphs were kept.")
+        if result.get("saveError"):
+            self._log("Working-font save failure: " + result["saveError"])
+            message(
+                "Working-font save failed",
+                result["saveError"],
+                alertStyle="critical",
+                parentWindow=self.w,
+            )
         self.refresh_ui()
         self.previewCurrent(regenerate_topology=False)
 
@@ -784,6 +807,8 @@ class FracturizeWindowController:
         self.refresh_ui()
 
     def windowCloseCallback(self, sender):
+        self._closed = True
+        self._topology_debounce_token += 1
         for event in self.observer_events:
             removeObserver(self, event)
         for name in ("intactPreview", "middlePreview", "erodedPreview"):

@@ -25,19 +25,37 @@ class FracturizeController:
         self.preview_glyph_name = None
         self.cancel_requested = False
         self._last_refresh_integrity_error = None
+        self._verified_font_binding = None
+
+    @staticmethod
+    def _dialog_result_path_item(result):
+        """Unwrap one path item from a Vanilla dialog result.
+
+        Result callbacks may deliver a plain string, an NSURL, a Python
+        list/tuple, or an Objective-C NSArray of either. NSArray fails an
+        ``isinstance(list, tuple)`` check, so unwrap any non-string iterable.
+        """
+
+        if not result:
+            return None
+        if isinstance(result, (str, Path)):
+            return result
+        if hasattr(result, "path") and callable(result.path):
+            return result.path()
+        if hasattr(result, "__iter__"):
+            items = list(result)
+            if not items:
+                return None
+            return FracturizeController._dialog_result_path_item(items[0])
+        return result
 
     @staticmethod
     def project_path_from_dialog_result(result):
         """Normalize Vanilla's save-panel result without assuming sync behavior."""
 
-        if not result:
+        result = FracturizeController._dialog_result_path_item(result)
+        if result is None:
             return None
-        if isinstance(result, (list, tuple)):
-            if not result:
-                return None
-            result = result[0]
-        if hasattr(result, "path") and callable(result.path):
-            result = result.path()
         path = Path(str(result)).expanduser()
         name = path.name
         if name.endswith(".fracturize.json"):
@@ -165,6 +183,7 @@ class FracturizeController:
             if not project.fonts_available:
                 raise LiveProjectError("created fonts could not be bound to the live project")
             self.project = project
+            self._verified_font_binding = None
             self._emit(logger, "controller_binding_end", project=str(path))
         except Exception:
             for font in (eroded, intact):
@@ -184,14 +203,9 @@ class FracturizeController:
 
     @staticmethod
     def open_project_path_from_dialog_result(result):
-        if not result:
+        result = FracturizeController._dialog_result_path_item(result)
+        if result is None:
             return None
-        if isinstance(result, (list, tuple)):
-            if not result:
-                return None
-            result = result[0]
-        if hasattr(result, "path") and callable(result.path):
-            result = result.path()
         return Path(str(result)).expanduser().resolve()
 
     def open_project(self, path, *, logger=None):
@@ -221,6 +235,7 @@ class FracturizeController:
         self._emit(logger, "controller_assignment_start", path=str(path))
         self.project = project
         self._last_refresh_integrity_error = None
+        self._verified_font_binding = None
         self._emit(logger, "controller_assignment_end", path=str(path))
         return project
 
@@ -281,14 +296,22 @@ class FracturizeController:
                 fonts.append(font)
                 if path:
                     registered_paths.add(Path(str(path)).resolve())
+        # Re-binding runs a complete working-font pair comparison. Skip it when
+        # the exact same documents were already bound and verified; every write
+        # path still validates the pair inside process_result before drawing.
+        binding_key = tuple(sorted(id(font) for font in fonts))
+        if binding_key == self._verified_font_binding and self.project.fonts_available:
+            return {"available": True, "error": None, "report": False}
         try:
             available = self.project.attach_fonts(fonts)
         except LiveProjectIntegrityError as error:
+            self._verified_font_binding = None
             text = str(error)
             report = text != self._last_refresh_integrity_error
             self._last_refresh_integrity_error = text
             return {"available": False, "error": text, "report": report}
         self._last_refresh_integrity_error = None
+        self._verified_font_binding = binding_key if available else None
         return {"available": available, "error": None, "report": False}
 
     def update_settings(self, **changes):
@@ -492,13 +515,32 @@ class FracturizeController:
                 self.project.record_failure(glyph_name, error)
                 failed.append((glyph_name, str(error)))
                 notify_complete(index, glyph_name)
+        save_error = None
+        if completed:
+            try:
+                self.save_working_fonts()
+            except Exception as error:
+                save_error = (
+                    "generated outlines were committed to the open working fonts, "
+                    f"but saving those fonts to disk failed: {error}"
+                )
         return {
             "completed": completed,
             "skipped": skipped,
             "rejected": rejected,
             "failed": failed,
             "cancelled": self.cancel_requested,
+            "saveError": save_error,
         }
+
+    def save_working_fonts(self):
+        """Persist both live working documents so generated outlines survive RoboFont."""
+
+        if self.project is None:
+            raise LiveProjectError("create or open a project first")
+        for font in (self.project.intact_font, self.project.eroded_font):
+            if font is not None:
+                self.environment.save_font(font)
 
     def validate(self):
         if self.project is None:

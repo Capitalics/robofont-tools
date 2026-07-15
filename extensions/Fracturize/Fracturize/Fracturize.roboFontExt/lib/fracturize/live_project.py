@@ -570,6 +570,10 @@ class LiveFractureProject:
         self.source_font = source_font
         self.intact_font = intact_font
         self.eroded_font = eroded_font
+        # glyph name -> (content key, outline). Preparing one source outline
+        # serializes the complete source font; status queries and previews ask
+        # for the same glyph repeatedly, so reuse it until its content changes.
+        self._source_outline_cache = {}
 
     @classmethod
     def create(
@@ -827,11 +831,32 @@ class LiveFractureProject:
         digest = hashlib.sha256(glyph_name.encode("utf-8")).hexdigest()[:16]
         return self.directory / f"{self.path.stem}-data" / "topology" / f"{digest}.json"
 
+    def _source_outline_cache_key(self, glyph_name):
+        """Cheap per-glyph content key: digests of the glyph and its component closure."""
+
+        native = _native(self.source_font)
+        digests = []
+        pending = [glyph_name]
+        visited = set()
+        while pending:
+            name = pending.pop()
+            if name in visited or name not in native:
+                continue
+            visited.add(name)
+            glyph = native[name]
+            digests.append((name, glyph_content_digest(glyph)))
+            pending.extend(component.baseGlyph for component in glyph.components)
+        return (float(native.info.unitsPerEm or 1000), tuple(sorted(digests)))
+
     def _source_outline(self, glyph_name, *, decompose_components=False):
         self._require_fonts()
         native = _native(self.source_font)
         if glyph_name not in native:
             raise LiveProjectError(f"source glyph does not exist: {glyph_name}")
+        cache_key = self._source_outline_cache_key(glyph_name)
+        cached = self._source_outline_cache.get(glyph_name)
+        if cached is not None and cached[0] == cache_key:
+            return cached[1]
         # Defcon/RoboFont fonts contain observer locks and cannot be deep-copied
         # safely. Serialization gives preprocessing a detached component graph
         # and guarantees that neither decomposition nor boolean operations can
@@ -873,6 +898,8 @@ class LiveFractureProject:
                 glyph,
                 units_per_em=float(native.info.unitsPerEm or 1000),
             )
+        # GlyphOutline is a frozen dataclass, so sharing the cached instance is safe.
+        self._source_outline_cache[glyph_name] = (cache_key, outline)
         return outline
 
     def glyph_has_components(self, glyph_name):
