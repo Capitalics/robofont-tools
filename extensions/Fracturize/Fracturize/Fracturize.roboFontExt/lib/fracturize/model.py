@@ -70,6 +70,7 @@ class GenerationSettings:
     baseline_retention: float = 0.85
     maximum_downward_drift_em: float = 0.025
     maximum_baseline_crossing_fraction: float = 0.12
+    crack_erosion_amount: float = 0.0
 
     def __post_init__(self):
         if not isinstance(self.project_seed, str) or not self.project_seed:
@@ -107,6 +108,7 @@ class GenerationSettings:
             "baseline_retention": (0.0, 1.0),
             "maximum_downward_drift_em": (0.0, 0.08),
             "maximum_baseline_crossing_fraction": (0.0, 0.5),
+            "crack_erosion_amount": (0.0, 1.0),
         }
         for name, (minimum, maximum) in ranges.items():
             value = getattr(self, name)

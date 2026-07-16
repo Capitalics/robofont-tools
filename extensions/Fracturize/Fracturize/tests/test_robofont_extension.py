@@ -1179,7 +1179,7 @@ def test_project_schema_contains_required_live_reproducibility_fields(live_contr
     data = json.loads(project.path.read_text())
     assert data["format"] == "com.fracturize.live-project"
     assert data["formatVersion"] == 1
-    assert data["motionPolicy"]["algorithmVersion"] == "architectural-erosion-v2"
+    assert data["motionPolicy"]["algorithmVersion"] == "in-place-dispersal-v3"
     assert data["topologyPolicy"]["topologyVersion"] == "branching-rough-crack-mesh-v2"
     assert data["topologyPolicy"]["edgeProfileVersion"] == "independent-rock-edge-detail-v1"
     record = data["processedGlyphs"]["O"]

@@ -18,6 +18,7 @@ from shapely.geometry import LineString, Polygon
 from . import __version__
 from .core import (
     EDGE_PROFILE_VERSION,
+    MOTION_ALGORITHM_V2,
     MOTION_ALGORITHM_VERSION,
     OUTLINE_RECONSTRUCTION_VERSION,
     SEED_DERIVATION_VERSION,
@@ -704,7 +705,10 @@ class LiveFractureProject:
             raise LiveProjectIntegrityError("unsupported edge profile version")
         if not isinstance(data["motionPolicy"], dict):
             raise LiveProjectIntegrityError("motionPolicy must be an object")
-        if data["motionPolicy"].get("algorithmVersion") != MOTION_ALGORITHM_VERSION:
+        if data["motionPolicy"].get("algorithmVersion") not in {
+            MOTION_ALGORITHM_V2,
+            MOTION_ALGORITHM_VERSION,
+        }:
             raise LiveProjectIntegrityError("unsupported motion version")
         if not isinstance(data["workingFonts"], dict):
             raise LiveProjectIntegrityError("workingFonts must be an object")

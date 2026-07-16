@@ -67,7 +67,7 @@ def test_project_creation_writes_one_empty_identified_ufo_pair_and_json(tmp_path
     assert not Path(data["source"]["path"]).is_absolute()
     assert data["savePolicy"]["outputsMayRemainOpenInRoboFont"] is True
     assert data["savePolicy"]["finalRoboFontOwnership"] == "user-owned RoboFont documents"
-    assert data["motionPolicy"]["algorithmVersion"] == "architectural-erosion-v2"
+    assert data["motionPolicy"]["algorithmVersion"] == "in-place-dispersal-v3"
     for path, role in ((project.intact_path, "intact"), (project.eroded_path, "eroded")):
         font = Font(path)
         assert font.lib[PROJECT_ID_KEY] == data["projectID"]
@@ -168,7 +168,7 @@ def test_motion_only_regeneration_reuses_persisted_topology(tmp_path):
     assert second_record["topologyDigest"] == first_record["topologyDigest"]
     assert second_record["topologyPath"] == first_record["topologyPath"]
     assert second_record["pairRevision"] != first_record["pairRevision"]
-    assert second_record["motionAlgorithmVersion"] == "architectural-erosion-v2"
+    assert second_record["motionAlgorithmVersion"] == "in-place-dispersal-v3"
     assert read_master(project.intact_path, "O") == first_intact
     assert read_master(project.eroded_path, "O") != first_eroded
     FractureProject.open(project.path)

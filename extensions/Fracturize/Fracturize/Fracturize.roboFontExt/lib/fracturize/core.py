@@ -15,6 +15,7 @@ from .geometry import (
     geometry_to_canonical_rings,
     master_contours_to_union,
     normalize_outline,
+    signed_area,
 )
 from .hybrid import reconstruct_hybrid_contours
 from .model import (
@@ -38,7 +39,8 @@ CLEAN_MACRO_COMPARISON_VERSION = "branching-clean-macro-v2"
 TOPOLOGY_VERSION = "branching-rough-crack-mesh-v2"
 EDGE_PROFILE_VERSION = "independent-rock-edge-detail-v1"
 MOTION_ALGORITHM_V1 = "fragment-affine-motion-v1"
-MOTION_ALGORITHM_VERSION = "architectural-erosion-v2"
+MOTION_ALGORITHM_V2 = "architectural-erosion-v2"
+MOTION_ALGORITHM_VERSION = "in-place-dispersal-v3"
 OUTLINE_RECONSTRUCTION_VERSION = "hybrid-source-exterior-v1"
 
 
@@ -1094,8 +1096,10 @@ def _architectural_motion_for_fragments(
     transformed_minimum_y = {}
     size_classes = {}
     for fragment in fragments:
+        # The seed string is the frozen v2 identifier: stored v2 projects must
+        # keep reproducing byte-identical motion.
         digest = hashlib.sha256(
-            f"{MOTION_ALGORITHM_VERSION}|{fragment.identifier}".encode("ascii")
+            f"{MOTION_ALGORITHM_V2}|{fragment.identifier}".encode("ascii")
         ).digest()
         rng = random.Random(int.from_bytes(digest[:8], "big"))
         relative_size = fragment.area / maximum_area
@@ -1171,6 +1175,12 @@ def _architectural_motion_for_fragments(
             point[1] for contour in transformed for point in contour.points
         )
 
+    return _limit_baseline_crossings(
+        fragments, settings, motions, transformed_minimum_y, size_classes
+    )
+
+
+def _limit_baseline_crossings(fragments, settings, motions, transformed_minimum_y, size_classes):
     # Only fragments whose original geometry is on/above the baseline count as
     # newly crossing it. Prefer the smallest chips when a bounded crossing is
     # allowed, and lift all other candidates exactly back to the baseline.
@@ -1201,6 +1211,119 @@ def _architectural_motion_for_fragments(
     return motions
 
 
+def _dispersal_motion_for_fragments(
+    fragments: tuple[Fragment, ...],
+    settings: GenerationSettings,
+    silhouette_area: float,
+    upm: float,
+) -> dict[str, tuple[tuple[float, float], float, float]]:
+    """Delicate in-place dispersal so the letterform survives corruption.
+
+    Fragments separate outward from the glyph body instead of drifting along
+    one shared direction, keeping neighbours from crossing into each other.
+    Only the smallest chips occasionally escape further, and the largest core
+    fragment stays almost anchored. ``movement_direction_degrees`` is unused
+    here; ``movement_spread_degrees`` jitters each fragment's outward path.
+    """
+
+    if not fragments:
+        return {}
+    maximum_area = max(fragment.area for fragment in fragments)
+    total_area = sum(fragment.area for fragment in fragments)
+    center = (
+        sum(fragment.centroid[0] * fragment.area for fragment in fragments) / total_area,
+        sum(fragment.centroid[1] * fragment.area for fragment in fragments) / total_area,
+    )
+    motions = {}
+    transformed_minimum_y = {}
+    size_classes = {}
+    for fragment in fragments:
+        digest = hashlib.sha256(
+            f"{MOTION_ALGORITHM_VERSION}|{fragment.identifier}".encode("ascii")
+        ).digest()
+        rng = random.Random(int.from_bytes(digest[:8], "big"))
+        relative_size = fragment.area / maximum_area
+        silhouette_share = max(0.0, min(1.0, fragment.area / silhouette_area))
+        smallness = 1.0 - math.sqrt(silhouette_share)
+        if relative_size >= 0.55:
+            size_class = "large"
+            movement_multiplier = settings.large_fragment_movement_multiplier
+        elif relative_size >= 0.20:
+            size_class = "medium"
+            movement_multiplier = settings.medium_fragment_movement_multiplier
+        else:
+            size_class = "small"
+            movement_multiplier = settings.small_fragment_movement_multiplier
+        size_classes[fragment.identifier] = size_class
+
+        core_factor = 0.35 if fragment.area == maximum_area else 1.0
+        offset = (fragment.centroid[0] - center[0], fragment.centroid[1] - center[1])
+        if math.hypot(*offset) > upm * 1e-6:
+            outward = math.atan2(offset[1], offset[0])
+        else:
+            outward = rng.uniform(0.0, math.tau)
+        jitter = math.radians(settings.movement_spread_degrees)
+        direction = outward + rng.uniform(-jitter, jitter)
+
+        escape_probability = 0.15 + 0.25 * settings.erosion_amount
+        escaped = size_class == "small" and rng.random() < escape_probability
+        distance_scale = 0.11 if escaped else 0.05
+        distance = (
+            upm
+            * distance_scale
+            * settings.erosion_amount
+            * (0.25 + 0.75 * smallness)
+            * rng.uniform(0.35, 1.0)
+            * movement_multiplier
+            * core_factor
+        )
+        translation_x = math.cos(direction) * distance
+        translation_y = math.sin(direction) * distance
+        downward_limit = upm * settings.maximum_downward_drift_em
+        translation_y = max(translation_y, -downward_limit)
+        if translation_y < 0:
+            proximity = 1.0 - max(
+                0.0,
+                min(1.0, max(fragment.bounds[1], 0.0) / max(upm * 0.08, 1.0)),
+            )
+            translation_y *= 1.0 - settings.baseline_retention * proximity
+
+        rotation = (
+            settings.maximum_rotation_degrees
+            * (1.0 if escaped else 0.5)
+            * smallness
+            * min(1.0, movement_multiplier)
+            * core_factor
+            * rng.uniform(-1.0, 1.0)
+        )
+        scale_loss = (
+            (1.0 - settings.minimum_scale)
+            * smallness
+            * min(1.0, movement_multiplier)
+            * core_factor
+            * rng.uniform(0.15, 0.85 if escaped else 0.5)
+        )
+        scale = max(settings.minimum_scale, 1.0 - scale_loss)
+        translation = (translation_x, translation_y)
+        motions[fragment.identifier] = (translation, rotation, scale)
+        transformed = (
+            _transform_contour(
+                contour,
+                fragment.transform_origin,
+                translation,
+                rotation,
+                scale,
+            )
+            for contour in fragment.intact_contours
+        )
+        transformed_minimum_y[fragment.identifier] = min(
+            point[1] for contour in transformed for point in contour.points
+        )
+    return _limit_baseline_crossings(
+        fragments, settings, motions, transformed_minimum_y, size_classes
+    )
+
+
 def _motions_for_fragments(
     fragments: tuple[Fragment, ...],
     settings: GenerationSettings,
@@ -1209,6 +1332,10 @@ def _motions_for_fragments(
     motion_algorithm_version: str,
 ):
     if motion_algorithm_version == MOTION_ALGORITHM_VERSION:
+        return _dispersal_motion_for_fragments(
+            fragments, settings, silhouette_area, upm
+        )
+    if motion_algorithm_version == MOTION_ALGORITHM_V2:
         return _architectural_motion_for_fragments(
             fragments, settings, silhouette_area, upm
         )
@@ -1258,6 +1385,96 @@ def _transform_contour(contour: MasterContour, origin, translation, rotation_deg
         contour,
         points=tuple(segment.end for segment in transformed_segments),
         segments=tuple(transformed_segments),
+    )
+
+
+def _erode_crack_faces(
+    contour: MasterContour,
+    amount: float,
+    upm: float,
+    fragment_area: float,
+) -> MasterContour:
+    """Push fracture-face points into the fragment so gaps widen in place.
+
+    Only points generated on crack edges move ("-cut-" in their identifiers).
+    Exact source exterior points and the junctions where a crack meets the
+    exterior stay anchored, so the silhouette survives and point identity is
+    untouched. Applied to the eroded master only.
+    """
+
+    if amount <= 0.0:
+        return contour
+    segments = list(master_contour_segments(contour))
+    count = len(segments)
+    if count < 3:
+        return contour
+    cut_flags = [("-cut-" in point_id) for point_id in contour.point_ids]
+    if not any(cut_flags):
+        return contour
+    points = [segment.end for segment in segments]
+    material_on_left = (signed_area(points) < 0) == contour.is_hole
+
+    if all(cut_flags):
+        # Fully interior fragment: the whole boundary is fracture surface.
+        weights = [1.0] * count
+    else:
+        # Point i ends segment i; a maximal run of cut segments is one crack
+        # face whose polyline nodes fade to zero displacement at both mouths.
+        weights = [0.0] * count
+        for start in range(count):
+            if cut_flags[start] and not cut_flags[(start - 1) % count]:
+                run = [start]
+                index = (start + 1) % count
+                while cut_flags[index] and index != start:
+                    run.append(index)
+                    index = (index + 1) % count
+                for rank, point_index in enumerate(run[:-1], start=1):
+                    weights[point_index] = math.sin(math.pi * rank / len(run))
+
+    limit = min(upm * 0.015, math.sqrt(max(fragment_area, 0.0)) * 0.10)
+    new_points = list(points)
+    for index in range(count):
+        weight = weights[index]
+        if weight <= 0.0:
+            continue
+        incoming = segments[index]
+        outgoing = segments[(index + 1) % count]
+        if isinstance(incoming, CubicSegment) or isinstance(outgoing, CubicSegment):
+            continue
+        tangent = (
+            (incoming.end[0] - incoming.start[0]) + (outgoing.end[0] - outgoing.start[0]),
+            (incoming.end[1] - incoming.start[1]) + (outgoing.end[1] - outgoing.start[1]),
+        )
+        length = math.hypot(*tangent)
+        if length <= 1e-9:
+            continue
+        normal = (-tangent[1] / length, tangent[0] / length)
+        if not material_on_left:
+            normal = (-normal[0], -normal[1])
+        digest = hashlib.sha256(
+            f"crack-erosion-v1|{contour.point_ids[index]}".encode("ascii")
+        ).digest()
+        jitter = 0.65 + 0.35 * (int.from_bytes(digest[:8], "big") / (2**64 - 1))
+        depth = amount * limit * weight * jitter
+        new_points[index] = (
+            points[index][0] + normal[0] * depth,
+            points[index][1] + normal[1] * depth,
+        )
+
+    new_segments = []
+    for index, segment in enumerate(segments):
+        start = new_points[index - 1]
+        end = new_points[index]
+        if isinstance(segment, CubicSegment):
+            new_segments.append(
+                CubicSegment(start, segment.control1, segment.control2, end)
+            )
+        else:
+            new_segments.append(LineSegment(start, end))
+    return replace(
+        contour,
+        points=tuple(new_points),
+        segments=tuple(new_segments),
     )
 
 
@@ -1368,12 +1585,17 @@ def generate_pair(
     for fragment in canonical_fragments:
         translation, rotation, scale = motions[fragment.identifier]
         moved = tuple(
-            _transform_contour(
-                contour,
-                fragment.transform_origin,
-                translation,
-                rotation,
-                scale,
+            _erode_crack_faces(
+                _transform_contour(
+                    contour,
+                    fragment.transform_origin,
+                    translation,
+                    rotation,
+                    scale,
+                ),
+                settings.crack_erosion_amount,
+                outline.units_per_em,
+                fragment.area,
             )
             for contour in fragment.intact_contours
         )
@@ -1450,12 +1672,17 @@ def regenerate_motion_from_topology(
     for fragment in topology.fragments:
         translation, rotation, scale = motions[fragment.identifier]
         moved = tuple(
-            _transform_contour(
-                contour,
-                fragment.transform_origin,
-                translation,
-                rotation,
-                scale,
+            _erode_crack_faces(
+                _transform_contour(
+                    contour,
+                    fragment.transform_origin,
+                    translation,
+                    rotation,
+                    scale,
+                ),
+                settings.crack_erosion_amount,
+                units_per_em,
+                fragment.area,
             )
             for contour in fragment.intact_contours
         )

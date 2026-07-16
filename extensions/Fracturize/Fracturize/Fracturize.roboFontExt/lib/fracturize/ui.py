@@ -92,8 +92,9 @@ class FracturizeWindowController:
         self._add_slider("downward", "Maximum Downward Drift", 500, 0, 80, 25, self.motionCallback)
         self._add_slider("cohesion", "Structural Cohesion", 530, 0, 100, 56, self.motionCallback)
         self._add_slider("rotation", "Rotation Amount", 560, 0, 30, 12, self.motionCallback)
+        self._add_slider("crackErosion", "Crack Erosion", 590, 0, 100, 0, self.motionCallback)
         self.w.decomposeComponents = CheckBox(
-            (15, 585, 320, 20),
+            (15, 615, 320, 20),
             "Decompose components before processing",
             value=False,
         )
@@ -111,16 +112,16 @@ class FracturizeWindowController:
         self.w.compatibility = TextBox((660, 472, 270, 18), "Compatibility: —")
         self.w.warningDisplay = TextEditor((465, 500, 465, 120), readOnly=True)
 
-        self.w.generate = Button((15, 610, 90, 26), "Generate", callback=self.generateCallback)
-        self.w.preview = Button((110, 610, 90, 26), "Preview", callback=self.previewCallback)
-        self.w.motionOnly = Button((205, 610, 125, 26), "Regenerate Motion", callback=self.motionOnlyCallback)
-        self.w.topology = Button((335, 610, 125, 26), "Regenerate Topology", callback=self.topologyCallback)
-        self.w.validate = Button((15, 644, 95, 26), "Validate", callback=self.validateCallback)
-        self.w.replaceStale = Button((116, 644, 145, 26), "Replace Stale Glyph", callback=self.replaceStaleCallback)
-        self.w.cancel = Button((267, 644, 155, 26), "Cancel Batch", callback=self.cancelCallback)
+        self.w.generate = Button((15, 640, 90, 26), "Generate", callback=self.generateCallback)
+        self.w.preview = Button((110, 640, 90, 26), "Preview", callback=self.previewCallback)
+        self.w.motionOnly = Button((205, 640, 125, 26), "Regenerate Motion", callback=self.motionOnlyCallback)
+        self.w.topology = Button((335, 640, 125, 26), "Regenerate Topology", callback=self.topologyCallback)
+        self.w.validate = Button((15, 674, 95, 26), "Validate", callback=self.validateCallback)
+        self.w.replaceStale = Button((116, 674, 145, 26), "Replace Stale Glyph", callback=self.replaceStaleCallback)
+        self.w.cancel = Button((267, 674, 155, 26), "Cancel Batch", callback=self.cancelCallback)
         self.w.cancel.enable(False)
-        self.w.log = TextEditor((15, 695, 430, -15), readOnly=True)
-        self.w.batchStatus = TextEditor((465, 695, -15, -15), readOnly=True)
+        self.w.log = TextEditor((15, 715, 430, -15), readOnly=True)
+        self.w.batchStatus = TextEditor((465, 715, -15, -15), readOnly=True)
         self._set_batch_status(0, 0, "—", 0, 0, 0, 0)
 
     def _add_slider(self, name, label, y, minimum, maximum, value, callback):
@@ -215,6 +216,7 @@ class FracturizeWindowController:
             "downward": settings.maximum_downward_drift_em * 1000,
             "cohesion": (settings.minimum_scale - 0.5) * 200,
             "rotation": settings.maximum_rotation_degrees,
+            "crackErosion": settings.crack_erosion_amount * 100,
         }
         for name, value in values.items():
             getattr(self.w, name).set(value)
@@ -401,6 +403,7 @@ class FracturizeWindowController:
             "maximum_downward_drift_em": self.w.downward.get() / 1000.0,
             "minimum_scale": 0.5 + self.w.cohesion.get() / 200.0,
             "maximum_rotation_degrees": self.w.rotation.get(),
+            "crack_erosion_amount": self.w.crackErosion.get() / 100.0,
         }
 
     def complexityCallback(self, sender):
@@ -478,6 +481,7 @@ class FracturizeWindowController:
         for name in (
             "crumble", "largeMove", "mediumMove", "smallMove", "direction",
             "spread", "baseline", "downward", "cohesion", "rotation",
+            "crackErosion",
         ):
             getattr(self.w, f"{name}Value").set(str(round(getattr(self.w, name).get(), 1)))
         if self.controller.project:

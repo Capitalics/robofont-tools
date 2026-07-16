@@ -19,6 +19,7 @@ from .core import (
     BRANCHING_TOPOLOGY_V1,
     EDGE_PROFILE_VERSION,
     MOTION_ALGORITHM_V1,
+    MOTION_ALGORITHM_V2,
     MOTION_ALGORITHM_VERSION,
     OUTLINE_RECONSTRUCTION_VERSION,
     RECURSIVE_TOPOLOGY_VERSION,
@@ -167,6 +168,7 @@ def validate_project_v1(data) -> None:
     motion = _require_mapping(root.get("motionPolicy"), "motionPolicy")
     if motion.get("algorithmVersion") not in {
         MOTION_ALGORITHM_V1,
+        MOTION_ALGORITHM_V2,
         MOTION_ALGORITHM_VERSION,
     }:
         raise ProjectIntegrityError("unsupported motion algorithm version")
@@ -627,6 +629,7 @@ class FractureProject:
             "baseline_retention",
             "maximum_downward_drift_em",
             "maximum_baseline_crossing_fraction",
+            "crack_erosion_amount",
         }
         unexpected = set(changes) - allowed
         if unexpected:
