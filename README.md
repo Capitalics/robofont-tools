@@ -1,8 +1,16 @@
 # RoboFont Tools
 
-Private toolbox for RoboFont scripts and extensions. The first utility is
-Workspace Launcher, a tool for opening common RoboFont/xTools windows and
-arranging a working layout.
+Private toolbox for RoboFont scripts and extensions.
+
+## Extensions
+
+- `extensions/RoboFontTools/`: a compact, read-only drawing-utility palette.
+  Version 0.1 measures ΔX, ΔY, direct distance, and angle between exactly two
+  selected contour points.
+- `extensions/WorkspaceLauncher.roboFontExt/`: opens common RoboFont/xTools
+  windows, restores their layout, and applies saved project paths.
+- `extensions/Fracturize/`: creates interpolation-compatible fractured glyph
+  masters.
 
 ## Docs
 
@@ -27,5 +35,6 @@ arranging a working layout.
 
 ## Status
 
-Early private toolbox for RoboFont scripts and extensions. No tools are
-implemented yet.
+Private, actively developed toolbox targeting the locally validated RoboFont
+4.6 and Python 3.12 environment. Individual extension documentation records any
+narrower compatibility requirements.

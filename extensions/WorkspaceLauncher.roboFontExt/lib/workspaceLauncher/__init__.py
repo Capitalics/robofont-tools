@@ -1,0 +1,1 @@
+"""Workspace Launcher extension package."""

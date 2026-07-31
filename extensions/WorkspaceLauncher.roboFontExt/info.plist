@@ -3,25 +3,6 @@
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>addToMenu</key>
-  <array>
-    <dict>
-      <key>path</key>
-      <string>open.py</string>
-      <key>preferredName</key>
-      <string>Workspace Launcher/Open</string>
-      <key>shortKey</key>
-      <string></string>
-    </dict>
-    <dict>
-      <key>path</key>
-      <string>saveLayout.py</string>
-      <key>preferredName</key>
-      <string>Workspace Launcher/Save Layout</string>
-      <key>shortKey</key>
-      <string></string>
-    </dict>
-  </array>
   <key>developer</key>
   <string>Borys Kosmynka</string>
   <key>developerURL</key>
@@ -29,7 +10,9 @@
   <key>html</key>
   <false/>
   <key>launchAtStartUp</key>
-  <false/>
+  <true/>
+  <key>mainScript</key>
+  <string>start.py</string>
   <key>name</key>
   <string>Workspace Launcher</string>
   <key>requiresVersionMajor</key>
