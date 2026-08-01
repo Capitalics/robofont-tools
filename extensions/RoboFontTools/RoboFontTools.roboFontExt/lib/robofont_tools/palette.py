@@ -18,9 +18,9 @@ class RoboFontToolsPaletteController(ezui.WindowController):
         content, description_data = self._build_tool_descriptions()
         self.w = ezui.EZWindow(
             title=self.title,
-            size=(self.width, 215),
-            minSize=(self.width, 215),
-            maxSize=(360, 260),
+            size=(self.width, 110),
+            minSize=(self.width, 110),
+            maxSize=(360, 160),
             autosaveName="com.boryskosmynka.robofonttools.toggler.palette",
             miniaturizable=False,
             content=content,
@@ -77,17 +77,8 @@ class RoboFontToolsPaletteController(ezui.WindowController):
         for tool in self._tools:
             tool.refresh()
 
-    def _render_SelectedPointsTool(self, presentation=None):
-        if self._closed or presentation is None:
-            return
-        values = {
-            "selectedPointsDistance": presentation.distance,
-            "selectedPointsDeltaX": presentation.delta_x,
-            "selectedPointsDeltaY": presentation.delta_y,
-            "selectedPointsAngle": presentation.angle,
-        }
-        for item_name, value in values.items():
-            self.w.getItem(item_name).set(value)
+    def _render_SelectedPointsTool(self, _presentation=None):
+        """Selected Points renders its values in the glyph-editor HUD."""
 
     def _render_ContourProbeTool(self, _presentation=None):
         """Contour Probe's controls are defined by EZUI; no value rendering."""

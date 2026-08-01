@@ -53,7 +53,7 @@ class ContourProbeSubscriber(Subscriber):
             raise
         self.cache = None
         self.glyph = None
-        self._editor_scale = 1.0
+        self._editor_scale = self._container_scale()
         self._drawn_layers = {}
         self._last_debug_at = 0.0
         self._rebuild(None)
@@ -237,7 +237,9 @@ class ContourProbeSubscriber(Subscriber):
                 size=(marker_size, marker_size), fillColor=color,
             ))
         label = format_number(interval.thickness)
-        pill_width, pill_height = self._pill_size(label, point_size, weight)
+        pill_width, pill_height, pill_radius = self._pill_size(
+            label, point_size, weight
+        )
         midpoint = interval.midpoint
         pill_layer = self.layer.appendBaseSublayer(
             position=(midpoint[0] - pill_width / 2, midpoint[1] - pill_height / 2),
@@ -245,11 +247,12 @@ class ContourProbeSubscriber(Subscriber):
             backgroundColor=self._pill_color(color),
             borderColor=color,
             borderWidth=self._glyph_units(1),
-            cornerRadius=pill_height / 2,
+            cornerRadius=pill_radius,
         )
         text_layer = self.layer.appendTextLineSublayer(
             position=midpoint, text=label, font="system", weight=weight,
             pointSize=point_size, fillColor=(1, 1, 1, 1),
+            pointSizeIsVisuallyConstant=True,
             horizontalAlignment="center", verticalAlignment="center",
         )
         self._drawn_layers[role] = dict(
@@ -257,9 +260,20 @@ class ContourProbeSubscriber(Subscriber):
             pill_border=pill_layer, text=text_layer,
         )
 
+    def _container_scale(self):
+        """Return the live foreground-container scale used by Merz."""
+        try:
+            return max(float(self.container.getContainerScale()), 0.01)
+        except Exception:
+            return getattr(self, "_editor_scale", 1.0)
+
+    def _screen_to_container(self, screen_points):
+        """Convert a screen-space dimension to foreground-container units."""
+        return screen_points / self._container_scale()
+
     def _glyph_units(self, screen_points):
-        """Convert a stable screen-space dimension to glyph coordinates."""
-        return screen_points / self._editor_scale
+        """Backward-compatible name for screen-to-container conversion."""
+        return self._screen_to_container(screen_points)
 
     def _pill_size(self, text, point_size, weight):
         font_weight = (
@@ -271,11 +285,14 @@ class ContourProbeSubscriber(Subscriber):
             text, {AppKit.NSFontAttributeName: font}
         )
         text_width, text_height = attributed.size()
-        horizontal_padding = 7
+        horizontal_padding = 6
         vertical_padding = 3
+        pill_width = text_width + horizontal_padding * 2
+        pill_height = text_height + vertical_padding * 2
         return (
-            self._glyph_units(text_width + horizontal_padding * 2),
-            self._glyph_units(text_height + vertical_padding * 2),
+            self._screen_to_container(pill_width),
+            self._screen_to_container(pill_height),
+            self._screen_to_container(pill_height / 2),
         )
 
     @staticmethod

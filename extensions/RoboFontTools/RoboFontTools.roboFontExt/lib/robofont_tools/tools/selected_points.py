@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Callable
 
+import AppKit
+
 from mojo.subscriber import (
     Subscriber,
     registerGlyphEditorSubscriber,
@@ -9,7 +11,6 @@ from mojo.subscriber import (
 )
 
 from .selected_points_model import (
-    SelectedPointsPresentation,
     presentation_for_glyph,
     selected_contour_points,
 )
@@ -18,11 +19,128 @@ from .selected_points_state import state
 
 KEY = "com.boryskosmynka.robofonttools.selectedPoints"
 DEBUG = True
+HUD_WIDTH = 220
+HUD_HEIGHT = 92
+HUD_BOTTOM_INSET = 16
 
 
 def _debug(message):
     if DEBUG:
         print(f"Measure Selected Points: {message}")
+
+
+class SelectedPointsHUD:
+    """A native view-space status panel owned by one Glyph Editor."""
+
+    def __init__(self, glyph_view, glyph_editor):
+        if hasattr(glyph_view, "getNSView"):
+            glyph_view = glyph_view.getNSView()
+        self.document_view = glyph_view
+        self.scroll_view = self.document_view.enclosingScrollView()
+        if self.scroll_view is None:
+            raise RuntimeError("Measure Selected Points: glyph view has no scroll view")
+        self.clip_view = self.scroll_view.contentView()
+        self.glyph_editor = glyph_editor
+        width = HUD_WIDTH
+        height = HUD_HEIGHT
+        self._preferred_size = (width, height)
+        self.view = AppKit.NSView.alloc().initWithFrame_(
+            AppKit.NSMakeRect(0, 0, width, height)
+        )
+        self.view.setWantsLayer_(True)
+        layer = self.view.layer()
+        layer.setBackgroundColor_(
+            AppKit.NSColor.colorWithWhite_alpha_(0.90, 0.35).CGColor()
+        )
+        layer.setCornerRadius_(8)
+        layer.setMasksToBounds_(True)
+        self._value_fields = {}
+        self._build_content()
+        self.clip_view.addSubview_(self.view)
+        self._notification_center = AppKit.NSNotificationCenter.defaultCenter()
+        self.clip_view.setPostsBoundsChangedNotifications_(True)
+        self.clip_view.setPostsFrameChangedNotifications_(True)
+        self._notification_center.addObserver_selector_name_object_(
+            self,
+            "clipViewBoundsDidChange:",
+            AppKit.NSViewBoundsDidChangeNotification,
+            self.clip_view,
+        )
+        self._notification_center.addObserver_selector_name_object_(
+            self,
+            "clipViewFrameDidChange:",
+            AppKit.NSViewFrameDidChangeNotification,
+            self.clip_view,
+        )
+        self._position_in_viewport()
+        self.hide("initial state")
+
+    def _build_content(self):
+        rows = (
+            ("Distance", "distance"),
+            ("Δx", "delta_x"),
+            ("Δy", "delta_y"),
+            ("Angle", "angle"),
+        )
+        for index, (title, key) in enumerate(rows):
+            y = HUD_HEIGHT - 24 - index * 18
+            label = AppKit.NSTextField.labelWithString_(title)
+            label.setFrame_(AppKit.NSMakeRect(12, y, 74, 16))
+            label.setFont_(AppKit.NSFont.systemFontOfSize_(11))
+            label.setTextColor_(AppKit.NSColor.secondaryLabelColor())
+            self.view.addSubview_(label)
+            value = AppKit.NSTextField.labelWithString_("—")
+            value.setFrame_(AppKit.NSMakeRect(88, y, HUD_WIDTH - 100, 16))
+            value.setAlignment_(AppKit.NSTextAlignmentRight)
+            value.setFont_(AppKit.NSFont.systemFontOfSize_weight_(
+                11, AppKit.NSFontWeightMedium
+            ))
+            value.setTextColor_(AppKit.NSColor.labelColor())
+            self.view.addSubview_(value)
+            self._value_fields[key] = value
+
+    def show(self, presentation):
+        self._value_fields["distance"].setStringValue_(presentation.distance)
+        self._value_fields["delta_x"].setStringValue_(presentation.delta_x)
+        self._value_fields["delta_y"].setStringValue_(presentation.delta_y)
+        self._value_fields["angle"].setStringValue_(presentation.angle)
+        self.view.setHidden_(False)
+        _debug("HUD shown")
+
+    def hide(self, reason):
+        self.view.setHidden_(True)
+        _debug(f"HUD hidden: {reason}")
+
+    def _position_in_viewport(self):
+        visible = self.clip_view.bounds()
+        preferred_width, preferred_height = self._preferred_size
+        width = min(preferred_width, max(visible.size.width - 20, 1))
+        height = min(preferred_height, max(visible.size.height - 20, 1))
+        x = visible.origin.x + (visible.size.width - width) / 2
+        if self.clip_view.isFlipped():
+            y = visible.origin.y + max(
+                visible.size.height - HUD_BOTTOM_INSET - height, 0
+            )
+        else:
+            y = visible.origin.y + HUD_BOTTOM_INSET
+        self.view.setFrame_(AppKit.NSMakeRect(x, y, width, height))
+
+    def clipViewBoundsDidChange_(self, _notification):
+        self._position_in_viewport()
+        _debug("HUD repositioned: clip-view bounds changed")
+
+    def clipViewFrameDidChange_(self, _notification):
+        self._position_in_viewport()
+        _debug("HUD repositioned: clip-view frame changed")
+
+    def destroy(self):
+        self._notification_center.removeObserver_name_object_(
+            self, AppKit.NSViewBoundsDidChangeNotification, self.clip_view
+        )
+        self._notification_center.removeObserver_name_object_(
+            self, AppKit.NSViewFrameDidChangeNotification, self.clip_view
+        )
+        self.view.removeFromSuperview()
 
 
 class SelectedPointsSubscriber(Subscriber):
@@ -41,12 +159,23 @@ class SelectedPointsSubscriber(Subscriber):
         )
         self.layer = self.container
         self._editor_scale = 1.0
+        self.hud = SelectedPointsHUD(
+            self.getGlyphEditor().getGlyphView(), self.getGlyphEditor()
+        )
         self.__class__.instances.add(self)
         _debug("attached to glyph editor")
+        _debug(f"subscriber = {self!r}")
+        _debug(f"glyph editor = {self.getGlyphEditor()!r}")
+        _debug(
+            "active glyph = "
+            f"{getattr(self.getGlyphEditor().getGlyph(), 'name', '?')!r}"
+        )
+        _debug(f"HUD container = {self.hud.clip_view!r}")
         self._refresh()
 
     def destroy(self):
-        self._hide()
+        self._hide("editor closed")
+        self.hud.destroy()
         self.__class__.instances.discard(self)
 
     def glyphEditorDidSetGlyph(self, info):
@@ -64,19 +193,17 @@ class SelectedPointsSubscriber(Subscriber):
 
     def _refresh(self, glyph=None):
         if self.__class__.tool is None or not state.enabled:
-            self._hide()
+            self._hide("tool disabled")
             return
         if glyph is None:
             glyph = self.getGlyphEditor().getGlyph().asFontParts()
         elif hasattr(glyph, "asFontParts"):
             glyph = glyph.asFontParts()
         presentation = presentation_for_glyph(glyph)
-        tool = self.__class__.tool
-        tool._update_presentation(presentation)
         points = selected_contour_points(glyph)
         _debug(f"selected points = {len(points)}")
         if len(points) != 2:
-            self._hide()
+            self._hide(f"selection count = {len(points)}")
             return
         first = (float(points[0].x), float(points[0].y))
         second = (float(points[1].x), float(points[1].y))
@@ -87,11 +214,14 @@ class SelectedPointsSubscriber(Subscriber):
             + ", distance=" + presentation.distance
         )
         self._draw(first, second)
+        self.hud.show(presentation)
         _debug("overlay updated")
 
-    def _hide(self):
+    def _hide(self, reason):
         if hasattr(self, "layer"):
             self.layer.clearSublayers()
+        if hasattr(self, "hud"):
+            self.hud.hide(reason)
 
     def _draw(self, first, second):
         self.layer.clearSublayers()
@@ -106,21 +236,12 @@ class SelectedPointsSubscriber(Subscriber):
     def _glyph_units(self, screen_points):
         return screen_points / self._editor_scale
 
+
 class SelectedPointsTool:
     content = """
     * TwoColumnForm @selectedPointsControl
     > : Measure Selected Points:
     > (-X) @selectedPointsEnabled
-    * Box @selectedPointsInfoBox
-    > * TwoColumnForm @selectedPointsValues
-    >> : Distance:
-    >> — @selectedPointsDistance
-    >> : Δx:
-    >> — @selectedPointsDeltaX
-    >> : Δy:
-    >> — @selectedPointsDeltaY
-    >> : Angle:
-    >> — @selectedPointsAngle
     """
     description_data = {
         "selectedPointsControl": {"titleColumnWidth": 210, "itemColumnWidth": 52},
@@ -128,18 +249,11 @@ class SelectedPointsTool:
             "callback": "_selectedPointsEnabledCallback",
             "value": state.enabled,
         },
-        "selectedPointsInfoBox": {"margins": 8},
-        "selectedPointsValues": {"titleColumnWidth": 80, "itemColumnWidth": 140},
-        "selectedPointsDistance": {"alignment": "right", "width": 140},
-        "selectedPointsDeltaX": {"alignment": "right", "width": 140},
-        "selectedPointsDeltaY": {"alignment": "right", "width": 140},
-        "selectedPointsAngle": {"alignment": "right", "width": 140},
     }
 
     def __init__(self, render: Callable):
         self._render = render
         self._started = False
-        self._presentation = SelectedPointsPresentation()
 
     def start(self):
         if self._started or not state.enabled:
@@ -161,12 +275,6 @@ class SelectedPointsTool:
         for subscriber in tuple(SelectedPointsSubscriber.instances):
             subscriber._refresh()
 
-    def _update_presentation(self, presentation):
-        if presentation == self._presentation:
-            return
-        self._presentation = presentation
-        self._render(presentation)
-
     def is_enabled(self):
         return state.enabled
 
@@ -177,7 +285,6 @@ class SelectedPointsTool:
             self.start()
         else:
             _debug("disabled")
-            self._update_presentation(SelectedPointsPresentation())
             for subscriber in tuple(SelectedPointsSubscriber.instances):
-                subscriber._hide()
+                subscriber._hide("tool disabled")
             self.stop()
