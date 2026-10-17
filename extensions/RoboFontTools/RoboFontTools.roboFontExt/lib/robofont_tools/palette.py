@@ -10,7 +10,7 @@ TOOL_CLASSES = get_tool_classes()
 
 class RoboFontToolsPaletteController(ezui.WindowController):
     title = "RoboFont Tools"
-    width = 300
+    width = 320
 
     def build(self):
         self._closed = False
@@ -18,9 +18,9 @@ class RoboFontToolsPaletteController(ezui.WindowController):
         content, description_data = self._build_tool_descriptions()
         self.w = ezui.EZWindow(
             title=self.title,
-            size=(self.width, 110),
-            minSize=(self.width, 110),
-            maxSize=(360, 160),
+            size=(self.width, 150),
+            minSize=(self.width, 150),
+            maxSize=(400, 200),
             autosaveName="com.boryskosmynka.robofonttools.toggler.palette",
             miniaturizable=False,
             content=content,
@@ -43,6 +43,7 @@ class RoboFontToolsPaletteController(ezui.WindowController):
         renderers = {
             "SelectedPointsTool": self._render_SelectedPointsTool,
             "ContourProbeTool": self._render_ContourProbeTool,
+            "DistributePointsTool": self._render_DistributePointsTool,
         }
         for tool_class in TOOL_CLASSES:
             renderer = renderers.get(tool_class.__name__)
@@ -82,6 +83,21 @@ class RoboFontToolsPaletteController(ezui.WindowController):
 
     def _render_ContourProbeTool(self, _presentation=None):
         """Contour Probe's controls are defined by EZUI; no value rendering."""
+
+    def _render_DistributePointsTool(self, _presentation=None):
+        """Distribute Points is a one-shot action; there is nothing to render."""
+
+    def _distribute(self, axis):
+        for tool in self._tools:
+            if tool.__class__.__name__ == "DistributePointsTool":
+                tool.distribute(axis)
+                break
+
+    def _distributeHorizontalCallback(self, sender):
+        self._distribute("x")
+
+    def _distributeVerticalCallback(self, sender):
+        self._distribute("y")
 
     def _contourProbeEnabledCallback(self, sender):
         for tool in self._tools:

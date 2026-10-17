@@ -48,6 +48,10 @@ class BundleTests(unittest.TestCase):
         self.assertTrue(
             (package / "tools" / "selected_points_state.py").is_file()
         )
+        self.assertTrue((package / "tools" / "distribute_points.py").is_file())
+        self.assertTrue(
+            (package / "tools" / "distribute_points_model.py").is_file()
+        )
         self.assertFalse((BUNDLE / "tests").exists())
 
     def test_runtime_sources_use_supported_lifecycle_apis(self):
@@ -84,6 +88,24 @@ class BundleTests(unittest.TestCase):
         self.assertIn("glyphEditorDidMouseMove", contour_probe)
         self.assertIn("extensionContainer", contour_probe)
         self.assertIn("from .contour_probe_state import state", contour_probe)
+        self.assertIn(
+            '"DistributePointsTool": self._render_DistributePointsTool', palette
+        )
+        self.assertIn("_distributeHorizontalCallback", palette)
+        self.assertIn("_distributeVerticalCallback", palette)
+        distribute_points = (
+            BUNDLE / "lib" / "robofont_tools" / "tools" / "distribute_points.py"
+        ).read_text()
+        self.assertIn("glyph.undo(", distribute_points)
+        self.assertIn("CurrentGlyph", distribute_points)
+        # A one-shot action must never register an editor subscriber.
+        self.assertNotIn("registerGlyphEditorSubscriber", distribute_points)
+
+    def test_distribute_points_tool_is_registered_in_the_palette(self):
+        tools_init = (
+            BUNDLE / "lib" / "robofont_tools" / "tools" / "__init__.py"
+        ).read_text()
+        self.assertIn("DistributePointsTool", tools_init)
 
 
 if __name__ == "__main__":

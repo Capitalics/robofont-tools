@@ -1,7 +1,7 @@
 # RoboFont Tools
 
-RoboFont Tools is a compact home for small utilities used while drawing. Version
-0.1 contains two read-only measurement tools.
+RoboFont Tools is a compact home for small utilities used while drawing. It
+contains two read-only measurement tools and one editing action.
 
 ## Supported environment
 
@@ -51,6 +51,33 @@ would be uncertain. Open contours and glyphs containing components are
 deliberately unsupported in this first version, so they never produce a
 potentially misleading result.
 
+### Distribute Points
+
+Select three or more on-curve points and/or anchors, then click **Horizontal**
+or **Vertical** in the palette's **Distribute** row.
+
+The participants are ranked by the coordinate on the chosen axis. The lowest
+and highest keep their exact positions; everything in between is respaced so
+the gaps are equal. The other axis is never touched, so a horizontal distribute
+changes only `x` values.
+
+- On-curve points and anchors participate as equals.
+- Off-curve points are never participants. Instead, the handles attached to a
+  moved on-curve point shift with it, so the curve around the node keeps its
+  shape. A quadratic off-curve sitting between two moving on-curve points is
+  left alone rather than guessed at.
+- New coordinates are rounded to integers, so individual gaps may differ by one
+  unit across an indivisible span. The outline stays on the integer grid.
+- Points sharing a coordinate keep their relative order, so the same selection
+  always produces the same result.
+- Each click writes one undo record.
+
+Unlike the measurement tools, this one has no on/off switch — it does nothing
+until a button is clicked. If fewer than three points are selected, no glyph is
+open, or the selection has no span along the chosen axis, nothing happens: the
+glyph is untouched and no undo record is created. The reason is printed to the
+Output window while `DEBUG` is on.
+
 ## Project structure
 
 ```text
@@ -67,9 +94,12 @@ RoboFontTools.roboFontExt/
                 selected_points_model.py  read-only presentation logic
                 selected_points_state.py  shared enabled state
                 contour_probe.py          live contour/counter probe
+                distribute_points.py       one-shot even-distribution action
+                distribute_points_model.py pure distribution maths
 tests/
     test_geometry.py
     test_bundle.py
+    test_distribute_points_model.py
 ```
 
 To add a future tool, place its logic in `robofont_tools/tools/`, give its tool
