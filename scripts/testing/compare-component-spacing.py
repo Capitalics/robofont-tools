@@ -18,7 +18,7 @@ import os
 import sys
 
 
-ROOT_PATH = "User/tdbk/REPOS/amstelvar-avar2/Sources/"
+ROOT_PATH = ""  # Set a local UFO folder for DrawBot, or pass one on the command line.
 BASE_GLYPH_NAME = "O"
 COMPONENT_GLYPH_NAME = "Ocyr"
 OUTPUT_FORMAT = "tsv"  # "tsv" or "csv"

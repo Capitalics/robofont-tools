@@ -49,6 +49,8 @@ class BundleTests(unittest.TestCase):
             (package / "tools" / "selected_points_state.py").is_file()
         )
         self.assertTrue((package / "tools" / "distribute_points.py").is_file())
+        self.assertTrue((package / "tools" / "select_between.py").is_file())
+        self.assertTrue((package / "tools" / "select_between_model.py").is_file())
         self.assertTrue(
             (package / "tools" / "distribute_points_model.py").is_file()
         )
@@ -100,12 +102,19 @@ class BundleTests(unittest.TestCase):
         self.assertIn("CurrentGlyph", distribute_points)
         # A one-shot action must never register an editor subscriber.
         self.assertNotIn("registerGlyphEditorSubscriber", distribute_points)
+        select_between = (
+            BUNDLE / "lib" / "robofont_tools" / "tools" / "select_between.py"
+        ).read_text()
+        self.assertIn("CurrentGlyph", select_between)
+        self.assertNotIn("registerGlyphEditorSubscriber", select_between)
+        self.assertIn("_selectBetweenCallback", palette)
 
     def test_distribute_points_tool_is_registered_in_the_palette(self):
         tools_init = (
             BUNDLE / "lib" / "robofont_tools" / "tools" / "__init__.py"
         ).read_text()
         self.assertIn("DistributePointsTool", tools_init)
+        self.assertIn("SelectBetweenTool", tools_init)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,8 @@
 # RoboFont Tools
 
 RoboFont Tools is a compact home for small utilities used while drawing. It
-contains two read-only measurement tools and one editing action.
+contains two read-only measurement tools, a point distribution action, and a
+contour selection action.
 
 ## Supported environment
 
@@ -78,6 +79,19 @@ open, or the selection has no span along the chosen axis, nothing happens: the
 glyph is untouched and no undo record is created. The reason is printed to the
 Output window while `DEBUG` is on.
 
+### Select Between
+
+Select exactly two points on the same contour, then click **Select Points** in
+the palette's **Select Between** row. The endpoints and every point between
+them are selected, including off-curve handles. On a closed contour, the first
+click chooses the shorter route; click again without changing the selection to
+switch to the other route. Further clicks alternate between the two routes.
+Length is measured along the ordered point positions, including handle
+positions. If the two points are on different contours, the action leaves the
+selection alone. Open contours have one route, so a second click does nothing.
+Changing the selection or editing the outline starts a new action. This tool
+only changes selection; it does not alter outlines or create an undo record.
+
 ## Project structure
 
 ```text
@@ -96,11 +110,17 @@ RoboFontTools.roboFontExt/
                 contour_probe.py          live contour/counter probe
                 distribute_points.py       one-shot even-distribution action
                 distribute_points_model.py pure distribution maths
+                select_between.py        one-shot contour selection action
+                select_between_model.py  route choice and repeat-click state
 tests/
     test_geometry.py
     test_bundle.py
     test_distribute_points_model.py
+    test_select_between.py
 ```
+
+The `tests/` folder is beside the installable bundle, not inside it. The team
+package contains only the `.roboFontExt` bundle and separate utility scripts.
 
 To add a future tool, place its logic in `robofont_tools/tools/`, give its tool
 class an EZUI row (`content` and `description_data`), and return the class from

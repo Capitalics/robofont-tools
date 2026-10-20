@@ -18,9 +18,9 @@ class RoboFontToolsPaletteController(ezui.WindowController):
         content, description_data = self._build_tool_descriptions()
         self.w = ezui.EZWindow(
             title=self.title,
-            size=(self.width, 150),
-            minSize=(self.width, 150),
-            maxSize=(400, 200),
+            size=(self.width, 185),
+            minSize=(self.width, 185),
+            maxSize=(400, 230),
             autosaveName="com.boryskosmynka.robofonttools.toggler.palette",
             miniaturizable=False,
             content=content,
@@ -44,6 +44,7 @@ class RoboFontToolsPaletteController(ezui.WindowController):
             "SelectedPointsTool": self._render_SelectedPointsTool,
             "ContourProbeTool": self._render_ContourProbeTool,
             "DistributePointsTool": self._render_DistributePointsTool,
+            "SelectBetweenTool": self._render_SelectBetweenTool,
         }
         for tool_class in TOOL_CLASSES:
             renderer = renderers.get(tool_class.__name__)
@@ -87,6 +88,9 @@ class RoboFontToolsPaletteController(ezui.WindowController):
     def _render_DistributePointsTool(self, _presentation=None):
         """Distribute Points is a one-shot action; there is nothing to render."""
 
+    def _render_SelectBetweenTool(self, _presentation=None):
+        """Select Between is a one-shot action; there is nothing to render."""
+
     def _distribute(self, axis):
         for tool in self._tools:
             if tool.__class__.__name__ == "DistributePointsTool":
@@ -98,6 +102,12 @@ class RoboFontToolsPaletteController(ezui.WindowController):
 
     def _distributeVerticalCallback(self, sender):
         self._distribute("y")
+
+    def _selectBetweenCallback(self, sender):
+        for tool in self._tools:
+            if tool.__class__.__name__ == "SelectBetweenTool":
+                tool.select_between()
+                break
 
     def _contourProbeEnabledCallback(self, sender):
         for tool in self._tools:

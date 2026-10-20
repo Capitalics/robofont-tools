@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "robofont-tools-extension"
-version = "0.1.0"
-description = "Small read-only drawing and measurement utilities for RoboFont"
+version = "0.2.1"
+description = "Drawing, measurement, selection, and point layout utilities for RoboFont"
 requires-python = ">=3.12"
 
 [project.optional-dependencies]

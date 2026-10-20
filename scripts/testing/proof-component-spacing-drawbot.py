@@ -19,7 +19,7 @@ import os
 import sys
 
 
-ROOT_PATH = "/Users/tdbk/REPOS/amstelvar-avar2/Sources/Roman"
+ROOT_PATH = ""  # Set a local UFO folder for DrawBot, or pass one on the command line.
 BASE_GLYPH_NAME = "O"
 COMPONENT_GLYPH_NAME = "Ocyr"
 SCAN_MODE = "folder-ufos"
