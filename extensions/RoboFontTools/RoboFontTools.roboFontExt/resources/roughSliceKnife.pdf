@@ -1,0 +1,61 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 20 20] /Resources << >> /Contents 4 0 R >>
+endobj
+4 0 obj
+<< /Length 409 >>
+stream
+q
+0 0 0 rg
+% serrated blade, pointing down and left
+1.1 1.0 m
+10.5 12.8 l
+12.3 11.2 l
+12.7 9.5 l
+11.1 8.9 l
+11.4 8.0 l
+10.1 8.2 l
+9.8 7.0 l
+8.6 7.2 l
+8.3 6.0 l
+7.1 6.2 l
+6.8 5.0 l
+5.6 5.2 l
+5.2 4.0 l
+4.0 4.2 l
+3.6 3.0 l
+2.4 3.2 l
+1.1 1.0 l
+h f
+% compact knife handle
+10.5 12.8 m
+15.8 18.7 l
+16.3 19.3 17.1 19.3 17.6 18.8 c
+18.8 17.5 l
+19.3 17.0 19.3 16.3 18.7 15.8 c
+13.1 10.6 l
+12.0 10.7 l
+10.5 12.8 l
+h f
+Q
+endstream
+endobj
+xref
+0 5
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000121 00000 n 
+0000000223 00000 n 
+trailer
+<< /Size 5 /Root 1 0 R >>
+startxref
+682
+%%EOF

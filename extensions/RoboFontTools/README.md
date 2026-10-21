@@ -1,8 +1,8 @@
 # RoboFont Tools
 
 RoboFont Tools is a compact home for small utilities used while drawing. It
-contains two read-only measurement tools, a point distribution action, and a
-contour selection action.
+contains two read-only measurement tools, a point distribution action, a
+contour selection action, a rough slicing knife, and a designspace anchor tool.
 
 ## Supported environment
 
@@ -22,6 +22,27 @@ extensions after installing it.
 
 No build step or third-party dependency installation is required. The extension
 uses RoboFont's bundled EZUI, Subscriber, and FontParts APIs.
+
+## Script menu
+
+RoboFont Tools adds a top-level **RoboFont Tools** menu at startup, beside the
+other application menus. **Open Palette** opens the existing drawing palette.
+Standalone scripts are grouped by task so future scripts can be added without
+another palette button. The existing **Extensions → RoboFont Tools** entry also
+opens the palette.
+
+Choose **RoboFont Tools → Anchors → Remove Extras from Open UFOs…** to clean
+anchors across the fonts currently open in RoboFont. Choose one open UFO as the
+default and click **Preview Changes**. For each matching glyph in every other
+open UFO, the script lists anchors whose names are absent from that glyph in
+the default. A source glyph with no matching default glyph is skipped and
+reported. If the matching default glyph has no anchors, all anchors in that
+source glyph are listed for removal.
+
+Click **Apply (Leave Unsaved)** to remove the listed anchors. The script checks
+the open fonts and anchor plan again before applying. Each changed glyph gets
+an undo action. The UFOs remain open with unsaved changes so you can inspect
+them and decide when to save. The default UFO is never changed.
 
 ## Opening and using the palette
 
@@ -92,6 +113,43 @@ selection alone. Open contours have one route, so a second click does nothing.
 Changing the selection or editing the outline starts a new action. This tool
 only changes selection; it does not alter outlines or create an undo record.
 
+### Rough Slice
+
+Set **Spacing**, **Gap**, and **Jitter** in the palette, then click **Activate
+Knife**. The button reads **Knife Active — Drag** when the tool is selected.
+Drag a straight line across the outlines in the Glyph Editor; a click alone
+does not cut. Each
+closed contour crossed cleanly is split into two contours. The two new cut
+edges receive paired points at approximately the chosen spacing (25 units by
+default). The edges wiggle independently while retaining at least the chosen
+gap (20 units by default) at every point along them. Jitter defaults to 30
+units. Each drag is one undoable action.
+
+Spacing accepts 5–50 units; gap must be positive and jitter nonnegative. A
+drag that does not enter and leave a contour cleanly has no effect. Open
+contours and components are skipped. To stop using the
+knife, choose another Glyph Editor tool.
+The knife appears in the Glyph Editor toolbar with a serrated blade icon.
+
+### Unify Anchors from Default
+
+Click **Unify from Default…**, load a `.designspace`, and check the default UFO
+shown in the window. The designspace default is selected automatically; use
+**Choose Default UFO…** to select another source in that designspace. Click
+**Preview Changes** to see changes per glyph and source, then **Apply and Save**.
+
+The tool adds anchors missing from each non-default source at the default's
+coordinates. Anchors already present keep their names and source-specific
+positions. Anchors are put in the default's order for xTools compatibility.
+Anchors found only in a non-default source are listed and retained after the
+default anchors.
+Glyphs missing from a source and glyphs with duplicate anchor names are listed
+and skipped. The tool changes anchor data only; it does not alter outlines or
+convert between cubic and quadratic curves. Open source fonts are updated in
+RoboFont, and changed sources are saved. Because extra anchors remain by choice,
+xTools may still flag those glyphs as anchor incompatible until you review the
+extras.
+
 ## Project structure
 
 ```text
@@ -101,6 +159,7 @@ RoboFontTools.roboFontExt/
         startup.py              Extensions-menu entry point
         robofont_tools/
             extension.py       singleton palette lifecycle
+            menu.py            top-level script menu
             palette.py         EZWindow and tool registration
             geometry.py        pure calculations and formatting
             tools/
@@ -112,11 +171,20 @@ RoboFontTools.roboFontExt/
                 distribute_points_model.py pure distribution maths
                 select_between.py        one-shot contour selection action
                 select_between_model.py  route choice and repeat-click state
+                rough_slice.py          interactive knife and contour slicing
+                rough_slice_model.py    paired rough edges with a guaranteed gap
+                unify_anchors.py       designspace anchor window and source updates
+                unify_anchors_model.py default detection and anchor comparison
+            scripts/
+                anchors/
+                    clean_from_default.py       open-UFO cleanup window and action
+                    clean_from_default_model.py per-glyph removal plan
 tests/
     test_geometry.py
     test_bundle.py
     test_distribute_points_model.py
     test_select_between.py
+    test_rough_slice_model.py
 ```
 
 The `tests/` folder is beside the installable bundle, not inside it. The team

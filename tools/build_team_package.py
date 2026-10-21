@@ -31,9 +31,22 @@ validated with RoboFont 4.6. No Python package installation is needed for the
 palette.
 
 The palette contains Measure Selected Points, Contour Probe, Distribute Points,
-and Select Between. For Select Between, select two points on one contour and
+Select Between, Rough Slice, and Unify Anchors. For Select Between, select two points on one contour and
 click **Select Points**. A second click switches to the other route on a closed
 contour. Off-curve handles are included.
+
+For Rough Slice, click **Activate Knife** (the button changes to **Knife Active
+— Drag**), then drag a straight line across one
+or more closed contours. The palette fields set point spacing (25 units by default),
+the visible gap, and jitter. One drag is one undoable edit. Use another Glyph
+Editor tool to leave knife mode. Open contours and components are skipped.
+
+For Unify Anchors, open the tool window, load a designspace, check its detected
+default source (or choose another source UFO), and preview before applying.
+Missing anchors are added at default coordinates. Existing source positions are
+kept, anchors are put in default order, and extras are retained after them.
+Missing glyphs and ambiguous duplicate names are reported.
+Retained extra anchors may still be reported as incompatible by xTools.
 
 ## Use the standalone scripts
 
@@ -71,6 +84,8 @@ def collect_files() -> dict[str, bytes]:
         if not source.is_file():
             continue
         if source.name == "info.plist" and source.parent == BUNDLE:
+            pass
+        elif source == BUNDLE / "resources" / "roughSliceKnife.pdf":
             pass
         elif source.suffix == ".py" and "__pycache__" not in source.parts:
             pass

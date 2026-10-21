@@ -3,6 +3,7 @@ from __future__ import annotations
 import ezui
 
 from .tools import get_tool_classes
+from .tools.rough_slice_model import SliceSettings
 
 
 TOOL_CLASSES = get_tool_classes()
@@ -18,10 +19,10 @@ class RoboFontToolsPaletteController(ezui.WindowController):
         content, description_data = self._build_tool_descriptions()
         self.w = ezui.EZWindow(
             title=self.title,
-            size=(self.width, 185),
-            minSize=(self.width, 185),
-            maxSize=(400, 230),
-            autosaveName="com.boryskosmynka.robofonttools.toggler.palette",
+            size=(self.width, 320),
+            minSize=(280, 320),
+            maxSize=(400, 380),
+            autosaveName="com.boryskosmynka.robofonttools.palette.v2",
             miniaturizable=False,
             content=content,
             margins=10,
@@ -45,6 +46,8 @@ class RoboFontToolsPaletteController(ezui.WindowController):
             "ContourProbeTool": self._render_ContourProbeTool,
             "DistributePointsTool": self._render_DistributePointsTool,
             "SelectBetweenTool": self._render_SelectBetweenTool,
+            "RoughSliceTool": self._render_RoughSliceTool,
+            "UnifyAnchorsTool": self._render_UnifyAnchorsTool,
         }
         for tool_class in TOOL_CLASSES:
             renderer = renderers.get(tool_class.__name__)
@@ -55,6 +58,9 @@ class RoboFontToolsPaletteController(ezui.WindowController):
                 )
                 continue
             tool = tool_class(renderer)
+            if tool_class.__name__ == "RoughSliceTool":
+                tool.set_settings_provider(self._rough_slice_settings)
+                tool.set_active_callback(self._rough_slice_active_changed)
             tool.start()
             if tool_class.__name__ == "ContourProbeTool":
                 self.w.getItem("contourProbeEnabled").set(tool.is_enabled())
@@ -91,6 +97,36 @@ class RoboFontToolsPaletteController(ezui.WindowController):
     def _render_SelectBetweenTool(self, _presentation=None):
         """Select Between is a one-shot action; there is nothing to render."""
 
+    def _render_RoughSliceTool(self, _presentation=None):
+        """Rough Slice draws its preview in the Glyph Editor."""
+
+    def _render_UnifyAnchorsTool(self, _presentation=None):
+        """Anchor unification runs in its own designspace window."""
+
+    def _rough_slice_settings(self):
+        return SliceSettings(
+            spacing=float(self.w.getItem("roughSliceSpacing").get()),
+            gap=float(self.w.getItem("roughSliceGap").get()),
+            jitter=float(self.w.getItem("roughSliceJitter").get()),
+        )
+
+    def _rough_slice_active_changed(self, active):
+        if self._closed:
+            return
+        button = self.w.getItem("roughSliceButton")
+        button.getNSButton().setTitle_("Knife Active — Drag" if active else "Activate Knife")
+
+    def _roughSliceCallback(self, sender):
+        try:
+            self._rough_slice_settings().validate()
+        except (ValueError, TypeError) as error:
+            print(f"Rough Slice: {error}")
+            return
+        for tool in self._tools:
+            if tool.__class__.__name__ == "RoughSliceTool":
+                tool.activate()
+                break
+
     def _distribute(self, axis):
         for tool in self._tools:
             if tool.__class__.__name__ == "DistributePointsTool":
@@ -107,6 +143,12 @@ class RoboFontToolsPaletteController(ezui.WindowController):
         for tool in self._tools:
             if tool.__class__.__name__ == "SelectBetweenTool":
                 tool.select_between()
+                break
+
+    def _unifyAnchorsCallback(self, sender):
+        for tool in self._tools:
+            if tool.__class__.__name__ == "UnifyAnchorsTool":
+                tool.open()
                 break
 
     def _contourProbeEnabledCallback(self, sender):

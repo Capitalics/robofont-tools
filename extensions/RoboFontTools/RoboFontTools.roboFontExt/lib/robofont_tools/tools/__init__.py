@@ -7,8 +7,11 @@ def get_tool_classes():
     from .distribute_points import DistributePointsTool
     from .select_between import SelectBetweenTool
     from .selected_points import SelectedPointsTool
+    from .rough_slice import RoughSliceTool
+    from .unify_anchors import UnifyAnchorsTool
 
-    return (SelectedPointsTool, ContourProbeTool, DistributePointsTool, SelectBetweenTool)
+    return (SelectedPointsTool, ContourProbeTool, DistributePointsTool,
+            SelectBetweenTool, RoughSliceTool, UnifyAnchorsTool)
 
 
 __all__ = ("get_tool_classes",)

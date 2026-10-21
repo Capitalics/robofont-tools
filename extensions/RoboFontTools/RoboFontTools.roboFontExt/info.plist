@@ -21,7 +21,9 @@
   <key>html</key>
   <false/>
   <key>launchAtStartUp</key>
-  <false/>
+  <true/>
+  <key>mainScript</key>
+  <string>start.py</string>
   <key>name</key>
   <string>RoboFont Tools</string>
   <key>requiresVersionMajor</key>
@@ -31,6 +33,6 @@
   <key>timeStamp</key>
   <real>0.0</real>
   <key>version</key>
-  <string>0.2.1</string>
+  <string>0.4.0</string>
 </dict>
 </plist>
