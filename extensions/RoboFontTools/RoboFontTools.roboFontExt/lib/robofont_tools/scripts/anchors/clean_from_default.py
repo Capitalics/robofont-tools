@@ -43,8 +43,9 @@ class CleanAnchorsWindow:
         self.preview_signature = None
         self.w = FloatingWindow(
             (650, 480), "Remove Extra Anchors from Open UFOs",
-            minSize=(520, 380), closeCallback=self._closed,
+            minSize=(520, 380),
         )
+        self.w.bind("close", self._closed)
         self.w.defaultLabel = TextBox((12, 15, 95, 20), "Default UFO:")
         self.w.defaultFont = PopUpButton(
             (108, 12, -120, 24), [], callback=self._selection_changed
