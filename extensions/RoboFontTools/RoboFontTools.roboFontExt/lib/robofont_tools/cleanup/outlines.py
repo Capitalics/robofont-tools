@@ -1,4 +1,5 @@
-"""Outline compatibility against the Default source. No RoboFont imports.
+"""Outline compatibility against the Default source, and the matching-point
+links between the current source and another source. No RoboFont imports.
 
 Outlines come in as plain data: contours of ordered (point type, x, y), with
 "offcurve" for off-curve points, plus component base-glyph names. Points
@@ -297,3 +298,93 @@ def mismatches(default: Outline, other: Outline) -> set[str]:
     if default.components != other.components:
         kinds.add("components")
     return kinds
+
+
+@dataclass(frozen=True)
+class Link:
+    contour: int
+    point: int
+    good: bool
+
+
+@dataclass(frozen=True)
+class Links:
+    """The matching-point links between the current source and another one."""
+    links: tuple[Link, ...]
+    first_difference: tuple[int, int] | None = None  # (contour, point) where structure differs
+    contour_counts: tuple[int, int] = (0, 0)         # (current source, other source)
+
+    @property
+    def wrong(self) -> int:
+        return sum(not link.good for link in self.links)
+
+    def status(self) -> str:
+        parts = []
+        if self.wrong:
+            parts.append(f"{self.wrong} wrong link" + ("" if self.wrong == 1 else "s"))
+        mine, theirs = self.contour_counts
+        if self.first_difference is not None and self.first_difference[0] < min(mine, theirs):
+            parts.append(f"points differ in contour {self.first_difference[0] + 1}")
+        if mine != theirs:
+            parts.append(f"{theirs} contour" + ("" if theirs == 1 else "s")
+                         + f", current source has {mine}")
+        return " · ".join(parts) or "compatible"
+
+
+def _partner(alignment, count, point, closed):
+    """The index of ``point``'s true partner, given align()'s (reversed, rotation).
+
+    Reversing a closed contour keeps its start point (see _reversed); an
+    open one runs end to end.
+    """
+    flip, rotation = alignment
+    shifted = point + rotation
+    if not flip:
+        return shifted % count
+    return (-shifted) % count if closed else count - 1 - shifted
+
+
+def _first_type_difference(mine, theirs):
+    """The first point index where the two contours' point types differ.
+
+    Open against closed differs from the start point on.
+    """
+    if mine.closed != theirs.closed:
+        return 0
+    for index, (a, b) in enumerate(zip(_types(mine.points), _types(theirs.points))):
+        if a != b:
+            return index
+    return min(len(mine.points), len(theirs.points))
+
+
+def links(current: Outline, other: Outline) -> Links:
+    """Join every point of ``current`` to its matching point in ``other``.
+
+    A link is good when the two points would also be paired once the other
+    source has its contours in the right order, with the right start points
+    and directions. Where no start point or direction lines a contour up,
+    links are good up to the first point whose type differs, which is the
+    glyph's first difference; failing that, the first contour without a
+    partner is.
+    """
+    found = []
+    first_difference = None
+    order = contour_order(current.contours, other.contours)
+    for index, (mine, theirs) in enumerate(zip(current.contours, other.contours)):
+        count = len(theirs.points)
+        if order is not None and order[index] != index:
+            good = [False] * count
+        elif (aligned := align(mine, theirs)) is not None:
+            good = [_partner(aligned, count, point, theirs.closed) == point
+                    for point in range(count)]
+        else:
+            differs = _first_type_difference(mine, theirs)
+            good = [point < differs for point in range(count)]
+            if first_difference is None:
+                first_difference = (index, differs)
+        found += [Link(index, point, good[point])
+                  for point in range(min(len(mine.points), count))]
+    counts = len(current.contours), len(other.contours)
+    if first_difference is None and counts[0] != counts[1]:
+        first_difference = (min(counts), 0)     # the first contour without a partner
+    return Links(tuple(found), first_difference, counts)
