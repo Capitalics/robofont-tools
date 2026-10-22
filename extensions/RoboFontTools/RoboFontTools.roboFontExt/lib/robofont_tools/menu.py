@@ -15,6 +15,10 @@ class MenuTarget(NSObject):
         from .cleanup.window import open_window
         open_window()
 
+    def openCompatibility_(self, sender):
+        from .cleanup.compatibility import open_window
+        open_window()
+
 
 def _item(title, action, target):
     item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(title, action, "")
@@ -39,6 +43,7 @@ def install_menu():
     submenu.addItem_(_item("Open Palette", "openPalette:", _target))
 
     submenu.addItem_(_item("Cleanup…", "openCleanup:", _target))
+    submenu.addItem_(_item("Compatibility…", "openCompatibility:", _target))
 
     top = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(MENU_TITLE, "", "")
     top.setSubmenu_(submenu)

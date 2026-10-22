@@ -76,6 +76,42 @@ class CleanupSession:
             return None
         return font.layers[source.layer]
 
+    def _sources_at(self, path):
+        """The sources in one UFO: the full source and any layer-sources."""
+        return [source for source in self.sources if source.path == path]
+
+    # --- the current glyph -------------------------------------------------
+
+    def source_for(self, path, layer_name):
+        """The source a Glyph Editor shows: a UFO path plus the layer on screen.
+
+        ``layer_name`` None or the UFO's default layer means the full source.
+        Returns None when that UFO or layer is not a source here.
+        """
+        path = Path(path).resolve()
+        sharing = self._sources_at(path)
+        if not sharing:
+            return None
+        if layer_name is not None:
+            font = self._defcon_font(sharing[0], self._open_fonts())
+            if layer_name == font.layers.defaultLayer.name:
+                layer_name = None
+        return next((source for source in sharing if source.layer == layer_name), None)
+
+    def glyph_outlines(self, name):
+        """Each source with its outline of ``name``, in designspace order.
+
+        The outline is None where the glyph (or the source's layer) is absent.
+        Open fonts are read live; closed UFOs come from the last load.
+        """
+        open_fonts = self._open_fonts()
+        found = []
+        for source in self.sources:
+            layer = self._layer(source, open_fonts)
+            outline = _outline(layer[name]) if layer is not None and name in layer else None
+            found.append((source, outline))
+        return tuple(found)
+
     # --- changing sources --------------------------------------------------
 
     def _change_glyphs(self, changes, source, names, title, change):
@@ -163,7 +199,7 @@ class CleanupSession:
                                      font_guides, coloured))
         layers = []
         for path in dict.fromkeys(source.path for source in self.sources):
-            sharing = [source for source in self.sources if source.path == path]
+            sharing = self._sources_at(path)
             full = next((source for source in sharing if source.layer is None), None)
             label = full.label if full else Path(path).stem
             font = self._defcon_font(sharing[0], open_fonts)
@@ -206,7 +242,7 @@ class CleanupSession:
     # --- layers, guides, mark colours --------------------------------------
 
     def _label(self, path):
-        sharing = [source for source in self.sources if source.path == path]
+        sharing = self._sources_at(path)
         full = next((source for source in sharing if source.layer is None), None)
         return full.label if full else Path(path).stem
 
@@ -232,7 +268,7 @@ class CleanupSession:
         changes = _Changes(self._open_fonts())
         removed = []
         for path in dict.fromkeys(source.path for source in self.sources):
-            sharing = [source for source in self.sources if source.path == path]
+            sharing = self._sources_at(path)
             used = {source.layer for source in sharing if source.layer}
             font = self._defcon_font(sharing[0], changes.open_fonts)
             default_name = font.layers.defaultLayer.name

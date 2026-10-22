@@ -67,6 +67,21 @@ def _area(points):
                in zip(points, points[1:] + points[:1]))
 
 
+def describe(contour: Contour):
+    """Return (direction, point count) for a Contour order cell.
+
+    Direction is "counter-clockwise", "clockwise", "open", or "" when a
+    closed contour has no area to tell by.
+    """
+    points = list(contour.points)
+    if not contour.closed:
+        direction = "open"
+    else:
+        area = _area(points)
+        direction = "counter-clockwise" if area > 0 else "clockwise" if area < 0 else ""
+    return direction, len(points)
+
+
 def align(default: Contour, contour: Contour):
     """Return (reversed, rotation) that make ``contour`` line up with ``default``.
 

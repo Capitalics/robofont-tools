@@ -26,6 +26,13 @@ def open_window():
     return _window
 
 
+def loaded():
+    """(session, designspace path) of the open Cleanup window, or (None, None)."""
+    if _window is None or _window.session is None:
+        return None, None
+    return _window.session, _window.designspace_path
+
+
 def _open_fonts():
     from mojo.roboFont import AllFonts
     return {Path(font.path).resolve(): font for font in AllFonts()
@@ -102,7 +109,9 @@ class CleanupWindow:
             allowsMultipleSelection=True, showColumnTitles=True,
             allowsSorting=False,
         )
-        self.outlines.outlineSummary = TextBox((8, -31, -8, 18), "")
+        self.outlines.compatibility = Button((8, -34, 130, 24), "Compatibility…",
+                                             callback=self.open_compatibility)
+        self.outlines.outlineSummary = TextBox((148, -31, -8, 18), "")
 
         # Whole-designspace removals; the audit above previews what goes.
         self.w.marksTitle = TextBox((12, -302, -12, 18), "Layers · Guides · Mark colours")
@@ -135,6 +144,12 @@ class CleanupWindow:
     def _closed(self, sender):
         global _window
         _window = None
+        from .compatibility import refresh_open_window
+        refresh_open_window()
+
+    def open_compatibility(self, sender):
+        from .compatibility import open_window
+        open_window()
 
     def _report(self, message):
         self.w.report.set(message)
@@ -195,6 +210,13 @@ class CleanupWindow:
     def rescan(self, sender):
         if self.session is None:
             return
+        try:
+            self._scan(sender)
+        finally:
+            from .compatibility import refresh_open_window
+            refresh_open_window()
+
+    def _scan(self, sender):
         try:
             self._show_sources()
             audit, report = self.session.scan()
