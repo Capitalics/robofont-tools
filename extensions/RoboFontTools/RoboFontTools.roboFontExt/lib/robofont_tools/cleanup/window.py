@@ -1,6 +1,7 @@
 """The Cleanup window: load a designspace once, then run cleanups on it.
 
-Anchors is the only section so far; later sections reuse the same session.
+Sections: Anchors, then Layers / Guides / Mark colours, then Absent glyphs.
+All share one session and its open-vs-closed save rule.
 """
 from __future__ import annotations
 
@@ -32,7 +33,9 @@ def _open_fonts():
 
 class CleanupWindow:
     def __init__(self):
-        from vanilla import Button, FloatingWindow, List, TextBox, TextEditor
+        from vanilla import (
+            Button, FloatingWindow, List, PopUpButton, TextBox, TextEditor,
+        )
 
         self.designspace_path = None
         self.default_override = None
@@ -40,8 +43,9 @@ class CleanupWindow:
         self._rows = []
         self._audit_lines = []
         self._audit = None
+        self._absent = ()
 
-        self.w = FloatingWindow((680, 720), "Cleanup", minSize=(560, 600))
+        self.w =FloatingWindow((680, 880), "Cleanup", minSize=(560, 780))
         self.w.bind("close", self._closed)
 
         # Designspace header, shared by every section.
@@ -72,7 +76,7 @@ class CleanupWindow:
         # Anchors section.
         self.w.anchorsTitle = TextBox((12, 328, -12, 18), "Anchors")
         self.w.anchorRows = List(
-            (12, 350, -12, -190), [],
+            (12, 350, -12, -350), [],
             columnDescriptions=[
                 {"title": "Glyph", "key": "glyph", "width": 140},
                 {"title": "Differences", "key": "differences"},
@@ -80,15 +84,34 @@ class CleanupWindow:
             allowsMultipleSelection=True, showColumnTitles=True,
             allowsSorting=False,
         )
-        self.w.matchDefault = Button((12, -180, 150, 24), "Match Default",
+        self.w.matchDefault = Button((12, -340, 150, 24), "Match Default",
                                      callback=self.match_default)
-        self.w.removeAll = Button((170, -180, 170, 24), "Remove All Anchors",
+        self.w.removeAll = Button((170, -340, 170, 24), "Remove All Anchors",
                                   callback=self.remove_all)
-        self.w.anchorSummary = TextBox((350, -177, -12, 18), "")
-        self.w.report = TextEditor((12, -146, -12, -12), readOnly=True)
+        self.w.anchorSummary = TextBox((350, -337, -12, 18), "")
+
+        # Whole-designspace removals; the audit above previews what goes.
+        self.w.marksTitle = TextBox((12, -302, -12, 18), "Layers · Guides · Mark colours")
+        self.w.removeLayers = Button((12, -280, 170, 24), "Remove Extra Layers",
+                                     callback=self.remove_layers)
+        self.w.removeGuides = Button((190, -280, 150, 24), "Remove Guides",
+                                     callback=self.remove_guides)
+        self.w.stripColours = Button((348, -280, 170, 24), "Strip Mark Colours",
+                                     callback=self.strip_colours)
+
+        # Absent glyphs: names to paste into Add Glyphs, per source.
+        self.w.absentTitle = TextBox((12, -240, 110, 18), "Absent glyphs")
+        self.w.absentSource = PopUpButton((122, -242, 260, 22), [],
+                                          callback=self._show_absent)
+        self.w.copyAbsent = Button((392, -243, 80, 24), "Copy",
+                                   callback=self.copy_absent)
+        self.w.absentNames = TextEditor((12, -212, -12, 70), readOnly=True)
+        self.w.report = TextEditor((12, -132, -12, -12), readOnly=True)
         self._enable(False)
         self._report("Load a designspace. Its default source is selected automatically.\n"
                      "Select rows (Cmd-A for all), then Match Default or Remove All Anchors.\n"
+                     "Layer, guide and colour buttons act on the whole designspace; "
+                     "the audit shows what they remove.\n"
                      "Open fonts are changed with undo and left unsaved; "
                      "closed UFOs are saved.")
         self.w.open()
@@ -104,7 +127,8 @@ class CleanupWindow:
         print("RoboFont Tools / Cleanup: " + message.splitlines()[0])
 
     def _enable(self, enabled):
-        for name in ("rescan", "matchDefault", "removeAll"):
+        for name in ("rescan", "matchDefault", "removeAll", "removeLayers",
+                     "removeGuides", "stripColours", "copyAbsent"):
             getattr(self.w, name).enable(enabled)
 
     def _selected_glyphs(self):
@@ -165,6 +189,7 @@ class CleanupWindow:
             self._audit_lines = []
             self.w.anchorRows.set([])
             self.w.audit.set([])
+            self._set_absent(())
             self._report(f"Scan failed: {error}")
             traceback.print_exc()
             return
@@ -177,6 +202,7 @@ class CleanupWindow:
         self.w.anchorSummary.set(
             f"{len(report.rows)} glyphs differ · {len(report.absent)} absent from "
             f"some sources (allowed) · {len(report.outside_default)} not in default")
+        self._set_absent(report.absent_by_source)
         lines = [f"Scanned. {len(report.rows)} glyphs have anchor differences."]
         lines += list(self.session.warnings)
         if sender is not None or len(lines) > 1:
@@ -193,6 +219,47 @@ class CleanupWindow:
         self.w.anchorRows.setSelection(
             [index for index, row in enumerate(self._rows) if row.glyph in wanted])
         self.w.anchorRows.scrollToSelection()
+
+    # --- absent glyphs ---------------------------------------------------------
+
+    def _set_absent(self, absent_by_source):
+        current = self._absent_label()
+        self._absent = tuple(absent_by_source)
+        labels = [label for label, _names in self._absent]
+        self.w.absentSource.setItems(
+            [f"{label} — {len(names)} missing" for label, names in self._absent]
+            or ["No source is missing glyphs"])
+        self.w.absentSource.set(labels.index(current) if current in labels else 0)
+        self.w.absentSource.enable(bool(self._absent))
+        self.w.copyAbsent.enable(bool(self._absent))
+        self._show_absent(None)
+
+    def _absent_label(self):
+        index = self.w.absentSource.get()
+        if 0 <= index < len(self._absent):
+            return self._absent[index][0]
+        return None
+
+    def _absent_text(self):
+        index = self.w.absentSource.get()
+        if 0 <= index < len(self._absent):
+            return " ".join(self._absent[index][1])
+        return ""
+
+    def _show_absent(self, sender):
+        self.w.absentNames.set(self._absent_text())
+
+    def copy_absent(self, sender):
+        text = self._absent_text()
+        if not text:
+            return
+        from AppKit import NSPasteboard, NSPasteboardTypeString
+        board = NSPasteboard.generalPasteboard()
+        board.clearContents()
+        board.setString_forType_(text, NSPasteboardTypeString)
+        count = len(text.split())
+        self._report(f"Copied {count} glyph name{'s' if count != 1 else ''} "
+                     f"missing from {self._absent_label()}.")
 
     def _show_sources(self):
         items = []
@@ -239,3 +306,40 @@ class CleanupWindow:
 
     def remove_all(self, sender):
         self._fix(self.session.remove_all, "Removed all anchors")
+
+    # --- layers, guides, mark colours --------------------------------------
+
+    def _whole_fix(self, action, verb, nothing):
+        if self.session is None:
+            return
+        try:
+            result = action()
+        except Exception as error:
+            self._report(f"Stopped after an error: {error}. "
+                         "Check the sources before saving.")
+            traceback.print_exc()
+            self.rescan(None)
+            return
+        if not result.removed:
+            lines = [nothing]
+        else:
+            lines = [f"{verb}:"] + [f"  {label}: {what} ({count})"
+                                    for label, what, count in result.removed]
+        if result.saved:
+            lines.append("Saved closed UFOs: " + ", ".join(result.saved))
+        if result.no_undo:
+            lines.append("Changed without undo (open, unsaved — revert the font to undo): "
+                         + ", ".join(result.no_undo))
+        self.rescan(None)
+        self._report("\n".join(lines + list(self.session.warnings)))
+
+    def remove_layers(self, sender):
+        self._whole_fix(self.session.remove_extra_layers, "Removed layers",
+                        "No extra layers to remove.")
+
+    def remove_guides(self, sender):
+        self._whole_fix(self.session.remove_guides, "Removed guides", "No guides to remove.")
+
+    def strip_colours(self, sender):
+        self._whole_fix(self.session.strip_mark_colours, "Stripped mark colours",
+                        "No mark colours to strip.")

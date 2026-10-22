@@ -23,6 +23,7 @@ class Report:
     rows: tuple[Row, ...]
     absent: tuple[str, ...]           # default glyphs missing from some source (allowed)
     outside_default: tuple[str, ...]  # glyphs only in other sources (never built)
+    absent_by_source: tuple[tuple[str, tuple[str, ...]], ...] = ()  # (label, missing names)
 
 
 @dataclass(frozen=True)
@@ -132,7 +133,10 @@ def find_differences(default_glyphs, others) -> Report:
         if notes:
             rows.append(Row(glyph_name, " · ".join(notes), duplicates))
     outside = {name for glyphs in others.values() for name in glyphs} - set(default_glyphs)
-    return Report(tuple(rows), tuple(sorted(absent)), tuple(sorted(outside)))
+    by_source = tuple(
+        (label, missing) for label, glyphs in others.items()
+        if (missing := tuple(sorted(name for name in default_glyphs if name not in glyphs))))
+    return Report(tuple(rows), tuple(sorted(absent)), tuple(sorted(outside)), by_source)
 
 
 def plan_match_default(default_glyphs, others, glyph_names):

@@ -142,8 +142,8 @@ are included; one whose layer is missing is skipped with a warning.
 needs doing: glyph counts per anchor issue (missing, extra, order only,
 duplicate names) with the sources involved, extra layers per UFO (background
 layers on their own line), glyph and font guides, and glyphs with a mark colour.
-Click an anchor line to select those glyphs in the Anchors list. Layers, guides
-and mark colours are reported only for now.
+Click an anchor line to select those glyphs in the Anchors list. The audit is
+also the preview for the layer, guide and colour buttons below.
 
 **Anchors.** Every glyph in the default whose anchors differ in another source
 is listed: missing or extra anchor names, a different order, or duplicate
@@ -157,8 +157,24 @@ counted. Select rows (Cmd-A for all), then:
 - **Remove All Anchors** removes the glyph's anchors from every source,
   including the default.
 
+**Layers · Guides · Mark colours.** Each button acts on the whole designspace
+with no selection:
+
+- **Remove Extra Layers** deletes every layer except each UFO's main layer and
+  layers the designspace uses as sources. Background layers are removed too.
+- **Remove Guides** deletes glyph guides in every source and font guides in
+  each full UFO.
+- **Strip Mark Colours** clears the mark colour of every glyph in every source.
+
+Deleting layers and font guides in an open font has no undo; the report names
+those fonts (revert the font to get them back).
+
+**Absent glyphs.** The dropdown lists each source that lacks some of the
+default's glyphs. The names below it are space-separated, ready to paste into
+**Font → Add Glyphs**; **Copy** puts them on the clipboard.
+
 Open fonts are changed with undo and left unsaved; closed UFOs are saved
-immediately. The list rescans after each fix; **Rescan** refreshes it after
+immediately. The window rescans after each fix; **Rescan** refreshes it after
 manual edits.
 
 ## Project structure

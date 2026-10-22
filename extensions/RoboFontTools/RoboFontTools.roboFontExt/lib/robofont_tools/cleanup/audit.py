@@ -1,7 +1,7 @@
 """The Cleanup audit: what needs doing across a designspace. No RoboFont imports.
 
-Read-only. Anchors have fixes in the Anchors section; layers, guides and mark
-colours are reported only (fixes are planned separately).
+Read-only. It also previews what the window's fix buttons change: anchors per
+selected glyph, layers, guides and mark colours across the whole designspace.
 """
 from __future__ import annotations
 
