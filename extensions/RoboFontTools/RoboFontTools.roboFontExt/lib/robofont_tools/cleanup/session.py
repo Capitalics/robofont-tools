@@ -6,7 +6,7 @@ loaded with defcon, changed, and saved. ``open_fonts`` returns
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from .anchors import (
@@ -20,6 +20,14 @@ class FixResult:
     removed: tuple[tuple[str, str, int], ...]   # (source label, what, count)
     saved: tuple[str, ...]                      # closed sources that were saved
     no_undo: tuple[str, ...]                    # open sources changed without undo
+
+
+@dataclass
+class _Changes:
+    """What one fix changed: closed UFOs still to save, open fonts without undo."""
+    open_fonts: dict                                      # path -> RoboFont font
+    to_save: dict[Path, set[str]] = field(default_factory=dict)  # path -> source labels
+    no_undo: list[str] = field(default_factory=list)
 
 
 def _load_closed(path):
@@ -56,6 +64,48 @@ class CleanupSession:
         if source.layer not in font.layers:
             return None
         return font.layers[source.layer]
+
+    # --- changing sources --------------------------------------------------
+
+    def _change_glyphs(self, changes, source, names, title, change):
+        """The one way to change glyphs in a source.
+
+        ``change`` gets a defcon glyph. In an open font each glyph is changed
+        inside an undo named ``title`` and left unsaved; in a closed UFO the
+        source is marked for ``_save``.
+        """
+        font = changes.open_fonts.get(Path(source.path))
+        if font is None:
+            layer = self._layer(source, changes.open_fonts)
+            for name in names:
+                change(layer[name])
+            changes.to_save.setdefault(source.path, set()).add(source.label)
+            return
+        layer = font.getLayer(source.layer or font.defaultLayerName)
+        for name in names:
+            glyph = layer[name]
+            with glyph.undo(title):
+                change(glyph.naked())
+            glyph.changed()
+
+    def _change_font(self, changes, source, label, change_open, change_closed):
+        """Change a whole UFO: open fonts have no undo, closed ones are saved."""
+        font = changes.open_fonts.get(Path(source.path))
+        if font is not None:
+            change_open(font)
+            changes.no_undo.append(label)
+            return
+        change_closed(self._defcon_font(source, changes.open_fonts))
+        changes.to_save.setdefault(source.path, set()).add(label)
+
+    def _save(self, changes):
+        """Save every changed closed UFO; return the changed source labels."""
+        for path in changes.to_save:
+            self._closed[path].save()
+        return tuple(sorted(label for labels in changes.to_save.values() for label in labels))
+
+    def _result(self, removed, changes):
+        return FixResult(tuple(removed), self._save(changes), tuple(changes.no_undo))
 
     # --- anchors ---------------------------------------------------------
 
@@ -142,44 +192,28 @@ class CleanupSession:
     def _glyph_fix(self, title, wanted, change, what):
         """Run ``change`` on every source glyph where ``wanted`` is true."""
         self._closed = {}
-        open_fonts = self._open_fonts()
-        removed, changed_closed = [], {}
+        changes = _Changes(self._open_fonts())
+        removed = []
         for source in self.sources:
-            layer = self._layer(source, open_fonts)
+            layer = self._layer(source, changes.open_fonts)
             if layer is None:
                 continue
             names = [glyph.name for glyph in layer if wanted(glyph)]
             if not names:
                 continue
             removed.append((source.label, what, len(names)))
-            font = open_fonts.get(Path(source.path))
-            if font is None:
-                for name in names:
-                    change(layer[name])
-                changed_closed.setdefault(source.path, set()).add(source.label)
-                continue
-            open_layer = font.getLayer(source.layer or font.defaultLayerName)
-            for name in names:
-                glyph = open_layer[name]
-                with glyph.undo(title):
-                    change(glyph.naked())
-                glyph.changed()
-        return removed, changed_closed
-
-    def _save(self, changed_closed):
-        for path in changed_closed:
-            self._closed[path].save()
-        return tuple(sorted(label for labels in changed_closed.values() for label in labels))
+            self._change_glyphs(changes, source, names, title, change)
+        return removed, changes
 
     def remove_extra_layers(self):
         """Delete every layer except each UFO's main layer and layer-sources."""
         self._closed = {}
-        open_fonts = self._open_fonts()
-        removed, changed_closed, no_undo = [], {}, []
+        changes = _Changes(self._open_fonts())
+        removed = []
         for path in dict.fromkeys(source.path for source in self.sources):
             sharing = [source for source in self.sources if source.path == path]
             used = {source.layer for source in sharing if source.layer}
-            font = self._defcon_font(sharing[0], open_fonts)
+            font = self._defcon_font(sharing[0], changes.open_fonts)
             default_name = font.layers.defaultLayer.name
             extra = [(layer.name, len(layer)) for layer in font.layers
                      if layer.name != default_name and layer.name not in used]
@@ -187,68 +221,52 @@ class CleanupSession:
                 continue
             label = self._label(path)
             removed += [(label, name, count) for name, count in extra]
-            open_font = open_fonts.get(Path(path))
-            for name, _count in extra:
-                if open_font is not None:
+            names = [name for name, _count in extra]
+
+            def remove_open(open_font, names=names):
+                for name in names:
                     open_font.removeLayer(name)
-                else:
+
+            def remove_closed(font, names=names):
+                for name in names:
                     del font.layers[name]
-            if open_font is not None:
-                no_undo.append(label)
-            else:
-                changed_closed[path] = {label}
-        return FixResult(tuple(removed), self._save(changed_closed), tuple(no_undo))
+            self._change_font(changes, sharing[0], label, remove_open, remove_closed)
+        return self._result(removed, changes)
 
     def remove_guides(self):
         """Delete glyph guides in every source and font guides in full UFOs."""
-        removed, changed_closed = self._glyph_fix(
+        removed, changes = self._glyph_fix(
             "Remove Guides", lambda glyph: bool(glyph.guidelines),
             lambda glyph: glyph.clearGuidelines(), "glyph guides")
-        open_fonts = self._open_fonts()
-        result, no_undo = [], []
+        result = []
+
+        def clear(font):
+            font.clearGuidelines()
         for source in self.sources:
             result += [item for item in removed if item[0] == source.label]
             if source.layer is not None:
                 continue
-            font = self._defcon_font(source, open_fonts)
+            font = self._defcon_font(source, changes.open_fonts)
             if not font.guidelines:
                 continue
             result.append((source.label, "font guides", len(font.guidelines)))
-            open_font = open_fonts.get(Path(source.path))
-            if open_font is not None:
-                open_font.clearGuidelines()
-                no_undo.append(source.label)
-            else:
-                font.clearGuidelines()
-                changed_closed.setdefault(source.path, set()).add(source.label)
-        return FixResult(tuple(result), self._save(changed_closed), tuple(no_undo))
+            self._change_font(changes, source, source.label, clear, clear)
+        return self._result(result, changes)
 
     def strip_mark_colours(self):
         """Clear the mark colour of every glyph in every source."""
         def clear(glyph):
             glyph.markColor = None
-        removed, changed_closed = self._glyph_fix(
+        removed, changes = self._glyph_fix(
             "Strip Mark Colours", lambda glyph: glyph.markColor is not None,
             clear, "mark colours")
-        return FixResult(tuple(removed), self._save(changed_closed), ())
+        return self._result(removed, changes)
 
     def _apply(self, edits, title):
         """Apply edits; return the labels of closed sources that were saved."""
-        open_fonts = self._open_fonts()
+        changes = _Changes(self._open_fonts())
         by_label = {source.label: source for source in self.sources}
-        changed_closed = {}   # path -> labels
         for edit in edits:
-            source = by_label[edit.source]
-            font = open_fonts.get(Path(source.path))
-            if font is not None:
-                layer = font.getLayer(source.layer or font.defaultLayerName)
-                glyph = layer[edit.glyph]
-                with glyph.undo(title):
-                    apply_edit(glyph.naked(), edit)
-                glyph.changed()
-            else:
-                apply_edit(self._layer(source, open_fonts)[edit.glyph], edit)
-                changed_closed.setdefault(source.path, set()).add(source.label)
-        for path in changed_closed:
-            self._closed[path].save()
-        return tuple(sorted(label for labels in changed_closed.values() for label in labels))
+            self._change_glyphs(changes, by_label[edit.source], [edit.glyph], title,
+                                lambda glyph, edit=edit: apply_edit(glyph, edit))
+        return self._save(changes)
