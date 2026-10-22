@@ -49,6 +49,7 @@ class CleanupWindow:
         self.default_override = None
         self.session = None
         self._rows = []
+        self._outline_rows = []
         self._audit_lines = []
         self._audit = None
         self._absent = ()
@@ -107,7 +108,7 @@ class CleanupWindow:
                 {"title": "Mismatches", "key": "mismatches"},
             ],
             allowsMultipleSelection=True, showColumnTitles=True,
-            allowsSorting=False,
+            allowsSorting=False, doubleClickCallback=self._open_outline_row,
         )
         self.outlines.compatibility = Button((8, -34, 130, 24), "Compatibility…",
                                              callback=self.open_compatibility)
@@ -150,6 +151,38 @@ class CleanupWindow:
     def open_compatibility(self, sender):
         from .compatibility import open_window
         open_window()
+
+    def _open_outline_row(self, sender):
+        """Open the double-clicked glyph in the first source that mismatches
+        the Default, and show the Compatibility tab that fits its problem."""
+        # The row under the double-click (AppKit), not the selection, which
+        # may hold several rows; -1 for a click below the last row.
+        row = sender.getNSTableView().clickedRow()
+        if not 0 <= row < len(self._outline_rows) or self.session is None:
+            return
+        from .compatibility import landing, open_window
+        found = self._outline_rows[row]
+        label, tab = landing(found)
+        try:
+            self._open_glyph(label, found.glyph)
+        except Exception as error:
+            self._report(f"Could not open {found.glyph} in {label}: {error}")
+            traceback.print_exc()
+            return
+        open_window(tab, found.glyph, label)
+
+    def _open_glyph(self, label, name):
+        """Show glyph ``name`` of source ``label`` in a Glyph Editor. A closed
+        UFO is opened without a font window, so the fix is undoable."""
+        from mojo.roboFont import OpenFont
+        from mojo.UI import OpenGlyphWindow
+        source = next(source for source in self.session.sources if source.label == label)
+        font = _open_fonts().get(Path(source.path))
+        if font is None:
+            font = OpenFont(str(source.path), showInterface=False)
+            self._show_sources()
+        layer = font.getLayer(source.layer) if source.layer else font
+        OpenGlyphWindow(layer[name])
 
     def _report(self, message):
         self.w.report.set(message)
@@ -222,6 +255,7 @@ class CleanupWindow:
             audit, report = self.session.scan()
         except Exception as error:
             self._rows = []
+            self._outline_rows = []
             self._audit = None
             self._audit_lines = []
             self.anchors.anchorRows.set([])
@@ -239,6 +273,7 @@ class CleanupWindow:
         self.anchors.anchorRows.set([{"glyph": row.glyph, "differences": row.differences}
                                      for row in report.rows])
         outline_rows = audit.outlines.rows
+        self._outline_rows = list(outline_rows)
         self.outlines.outlineRows.set([{"glyph": row.glyph, "mismatches": row.mismatches}
                                        for row in outline_rows])
         self.outlines.outlineSummary.set(

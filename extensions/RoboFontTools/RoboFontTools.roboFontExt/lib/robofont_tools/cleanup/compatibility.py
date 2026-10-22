@@ -35,8 +35,16 @@ APART = 48         # Points tab: space between the ghost and the current source
 DIRECTION_MARKS = {"counter-clockwise": "↺", "clockwise": "↻", "open": "open", "": "?"}
 
 
-def open_window():
-    """Open the window once, or bring it forward."""
+TABS = ("Points", "Contour order")
+
+
+def open_window(tab=None, glyph=None, source_label=None):
+    """Open the window once, or bring it forward.
+
+    With ``tab``, show that tab. With a ``glyph`` name and a
+    ``source_label``, the Points tab compares that source's glyph with the Default
+    source once the Glyph Editor shows it (see ``landing``).
+    """
     global _window
     if _window is None:
         _window = CompatibilityWindow()
@@ -44,6 +52,10 @@ def open_window():
     else:
         _window.w.show()
         _window.w.makeKey()
+    if tab is not None:
+        _window.w.tabs.set(TABS.index(tab))
+    if glyph is not None:
+        _window._landing = (glyph, source_label)
     _window.refresh()
     return _window
 
@@ -167,7 +179,7 @@ class CompatibilityWindow:
         self.w.openCleanup = Button((-140, 10, 128, 24), "Open Cleanup",
                                     callback=self.open_cleanup)
         # A tab's view is only sized while it is shown: redraw on switching.
-        self.w.tabs = Tabs((12, 44, -12, -12), ["Points", "Contour order"],
+        self.w.tabs = Tabs((12, 44, -12, -12), list(TABS),
                            callback=lambda sender: self.refresh())
         self.points, self.order = self.w.tabs[0], self.w.tabs[1]
         self.points.matchDefault = Button((12, 8, 110, 24), "Match Default",
@@ -188,6 +200,7 @@ class CompatibilityWindow:
         self._glyph_name = None     # the glyph drawn now
         self._source = None         # the current source drawn now
         self._comparison = None       # the comparison source, kept across glyphs
+        self._landing = None          # (glyph, source label) to compare with the Default
         self._choices = ()            # (source, status) in the comparison popup
         self._result_glyph = None     # the glyph the result line is about
         self._drawn = ((), None, None, 0)   # rows, current, default, height last drawn
@@ -243,6 +256,9 @@ class CompatibilityWindow:
             self.order.result.set("")
             self.points.result.set("")
         outlines = session.glyph_outlines(name)
+        if self._landing == (name, source.label):
+            # Opened from the Outlines list: compare with the Default source.
+            self._landing, self._comparison = None, session.default
         self._comparison = pick_comparison(session.sources, source, session.default,
                                            self._comparison)
         self._set_choices(comparison_choices(outlines, source), session.default)
@@ -308,6 +324,7 @@ class CompatibilityWindow:
     def choose_comparison(self, sender):
         index = sender.get()
         if 0 <= index < len(self._choices):
+            self._landing = None    # the user's choice wins
             self._comparison = self._choices[index][0]
             self.refresh()
 
@@ -315,6 +332,7 @@ class CompatibilityWindow:
         sources = [source for source, _status in self._choices]
         if self._comparison not in sources:
             return
+        self._landing = None
         self._comparison = sources[(sources.index(self._comparison) + step) % len(sources)]
         self.refresh()
 
@@ -561,6 +579,19 @@ def pick_comparison(sources, current, default, previous):
     if default in others:
         return default
     return others[0] if others else None
+
+
+def landing(row):
+    """(source label, tab title) a double-click on an Outlines list row opens.
+
+    The source is the first one (designspace order) that mismatches the
+    Default. A contour count or order problem in any source opens the
+    Contour order tab, since points only pair once contours do; every other
+    outline mismatch opens the Points tab.
+    """
+    kinds = {kind for _label, found in row.kinds for kind in found}
+    tab = TABS[1] if {"contour count", "contour order"} & kinds else TABS[0]
+    return row.kinds[0][0], tab
 
 
 def comparison_choices(outlines, current):
