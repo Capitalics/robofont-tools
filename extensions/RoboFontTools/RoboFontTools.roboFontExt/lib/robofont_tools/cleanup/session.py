@@ -13,6 +13,7 @@ from .anchors import (
     apply_edit, audit_anchors, find_differences, plan_match_default, plan_remove_all,
 )
 from .audit import Audit, SourceMarks, ufo_layers
+from .outlines import Contour, Outline, audit_outlines
 
 
 @dataclass(frozen=True)
@@ -33,6 +34,16 @@ class _Changes:
 def _load_closed(path):
     from defcon import Font
     return Font(str(path))
+
+
+def _outline(glyph):
+    """Plain outline data for one defcon glyph."""
+    contours = tuple(
+        Contour(tuple((point.segmentType or "offcurve", point.x, point.y)
+                      for point in contour),
+                not contour.open)
+        for contour in glyph)
+    return Outline(contours, tuple(component.baseGlyph for component in glyph.components))
 
 
 class CleanupSession:
@@ -161,7 +172,17 @@ class CleanupSession:
                 [(layer.name, len(layer)) for layer in font.layers],
                 font.layers.defaultLayer.name,
                 {source.layer for source in sharing if source.layer}))
-        return Audit(audit_anchors(default_glyphs, others), tuple(layers), tuple(marks))
+        return Audit(audit_anchors(default_glyphs, others), tuple(layers), tuple(marks),
+                     self._outline_audit(open_fonts))
+
+    def _outline_audit(self, open_fonts):
+        outlines = {}
+        for source in self.sources:
+            layer = self._layer(source, open_fonts)
+            if layer is not None:
+                outlines[source.label] = {glyph.name: _outline(glyph) for glyph in layer}
+        default_glyphs = outlines.pop(self.default.label)
+        return audit_outlines(default_glyphs, outlines)
 
     def scan(self):
         """Read every source once; return (audit, anchor report)."""

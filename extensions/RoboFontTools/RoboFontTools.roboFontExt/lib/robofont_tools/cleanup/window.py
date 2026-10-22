@@ -1,6 +1,7 @@
 """The Cleanup window: load a designspace once, then run cleanups on it.
 
-Sections: Anchors, then Layers / Guides / Mark colours, then Absent glyphs.
+Sections: Anchors and Outlines (tabs), then Layers / Guides / Mark colours,
+then Absent glyphs.
 All share one session and its open-vs-closed save rule.
 """
 from __future__ import annotations
@@ -34,7 +35,7 @@ def _open_fonts():
 class CleanupWindow:
     def __init__(self):
         from vanilla import (
-            Button, FloatingWindow, List, PopUpButton, TextBox, TextEditor,
+            Button, FloatingWindow, List, PopUpButton, Tabs, TextBox, TextEditor,
         )
 
         self.designspace_path = None
@@ -73,10 +74,11 @@ class CleanupWindow:
             allowsSorting=False, selectionCallback=self._audit_selected,
         )
 
-        # Anchors section.
-        self.w.anchorsTitle = TextBox((12, 328, -12, 18), "Anchors")
-        self.w.anchorRows = List(
-            (12, 350, -12, -350), [],
+        # Anchors and Outlines share the flexible middle as two tabs.
+        self.w.sections = Tabs((12, 326, -12, -318), ["Anchors", "Outlines"])
+        self.anchors, self.outlines = self.w.sections[0], self.w.sections[1]
+        self.anchors.anchorRows = List(
+            (8, 8, -8, -42), [],
             columnDescriptions=[
                 {"title": "Glyph", "key": "glyph", "width": 140},
                 {"title": "Differences", "key": "differences"},
@@ -84,11 +86,23 @@ class CleanupWindow:
             allowsMultipleSelection=True, showColumnTitles=True,
             allowsSorting=False,
         )
-        self.w.matchDefault = Button((12, -340, 150, 24), "Match Default",
-                                     callback=self.match_default)
-        self.w.removeAll = Button((170, -340, 170, 24), "Remove All Anchors",
-                                  callback=self.remove_all)
-        self.w.anchorSummary = TextBox((350, -337, -12, 18), "")
+        self.anchors.matchDefault = Button((8, -34, 150, 24), "Match Default",
+                                           callback=self.match_default)
+        self.anchors.removeAll = Button((166, -34, 170, 24), "Remove All Anchors",
+                                        callback=self.remove_all)
+        self.anchors.anchorSummary = TextBox((346, -31, -8, 18), "")
+
+        # Outlines: glyphs whose contours or components differ from the default.
+        self.outlines.outlineRows = List(
+            (8, 8, -8, -42), [],
+            columnDescriptions=[
+                {"title": "Glyph", "key": "glyph", "width": 140},
+                {"title": "Mismatches", "key": "mismatches"},
+            ],
+            allowsMultipleSelection=True, showColumnTitles=True,
+            allowsSorting=False,
+        )
+        self.outlines.outlineSummary = TextBox((8, -31, -8, 18), "")
 
         # Whole-designspace removals; the audit above previews what goes.
         self.w.marksTitle = TextBox((12, -302, -12, 18), "Layers · Guides · Mark colours")
@@ -127,12 +141,13 @@ class CleanupWindow:
         print("RoboFont Tools / Cleanup: " + message.splitlines()[0])
 
     def _enable(self, enabled):
-        for name in ("rescan", "matchDefault", "removeAll", "removeLayers",
-                     "removeGuides", "stripColours", "copyAbsent"):
+        for name in ("rescan", "removeLayers", "removeGuides", "stripColours", "copyAbsent"):
             getattr(self.w, name).enable(enabled)
+        self.anchors.matchDefault.enable(enabled)
+        self.anchors.removeAll.enable(enabled)
 
     def _selected_glyphs(self):
-        return [self._rows[index].glyph for index in self.w.anchorRows.getSelection()
+        return [self._rows[index].glyph for index in self.anchors.anchorRows.getSelection()
                 if index < len(self._rows)]
 
     # --- designspace -------------------------------------------------------
@@ -187,7 +202,9 @@ class CleanupWindow:
             self._rows = []
             self._audit = None
             self._audit_lines = []
-            self.w.anchorRows.set([])
+            self.anchors.anchorRows.set([])
+            self.outlines.outlineRows.set([])
+            self.outlines.outlineSummary.set("")
             self.w.audit.set([])
             self._set_absent(())
             self._report(f"Scan failed: {error}")
@@ -197,13 +214,20 @@ class CleanupWindow:
         self._audit_lines = list(audit.lines())
         self.w.audit.set([{"text": line.text} for line in self._audit_lines])
         self._rows = list(report.rows)
-        self.w.anchorRows.set([{"glyph": row.glyph, "differences": row.differences}
-                               for row in report.rows])
-        self.w.anchorSummary.set(
+        self.anchors.anchorRows.set([{"glyph": row.glyph, "differences": row.differences}
+                                     for row in report.rows])
+        outline_rows = audit.outlines.rows
+        self.outlines.outlineRows.set([{"glyph": row.glyph, "mismatches": row.mismatches}
+                                       for row in outline_rows])
+        self.outlines.outlineSummary.set(
+            f"{len(outline_rows)} glyph{'s' if len(outline_rows) != 1 else ''} "
+            "with outline mismatches · absent glyphs are skipped")
+        self.anchors.anchorSummary.set(
             f"{len(report.rows)} glyphs differ · {len(report.absent)} absent from "
             f"some sources (allowed) · {len(report.outside_default)} not in default")
         self._set_absent(report.absent_by_source)
-        lines = [f"Scanned. {len(report.rows)} glyphs have anchor differences."]
+        lines = [f"Scanned. {len(report.rows)} glyphs have anchor differences, "
+                 f"{len(outline_rows)} have outline mismatches."]
         lines += list(self.session.warnings)
         if sender is not None or len(lines) > 1:
             self._report("\n".join(lines))
@@ -215,10 +239,14 @@ class CleanupWindow:
         line = self._audit_lines[selection[0]]
         if line.issue is None:
             return
+        if line.issue == "outlines":
+            self.w.sections.set(1)
+            return
         wanted = set(self._audit.anchors.glyphs[line.issue])
-        self.w.anchorRows.setSelection(
+        self.w.sections.set(0)
+        self.anchors.anchorRows.setSelection(
             [index for index, row in enumerate(self._rows) if row.glyph in wanted])
-        self.w.anchorRows.scrollToSelection()
+        self.anchors.anchorRows.scrollToSelection()
 
     # --- absent glyphs ---------------------------------------------------------
 

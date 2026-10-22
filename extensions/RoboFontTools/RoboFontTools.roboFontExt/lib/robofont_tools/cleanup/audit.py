@@ -1,13 +1,15 @@
 """The Cleanup audit: what needs doing across a designspace. No RoboFont imports.
 
-Read-only. It also previews what the window's fix buttons change: anchors per
-selected glyph, layers, guides and mark colours across the whole designspace.
+Read-only. It lists outline mismatches and previews what the window's fix
+buttons change: anchors per selected glyph, layers, guides and mark colours
+across the whole designspace.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
 
 from .anchors import ISSUES, AnchorAudit
+from .outlines import OutlineAudit
 
 BACKGROUND_LAYERS = ("public.background", "background")
 
@@ -42,7 +44,7 @@ class SourceMarks:
 @dataclass(frozen=True)
 class AuditLine:
     text: str
-    issue: str | None = None   # anchor issue this line selects in the list
+    issue: str | None = None   # anchor issue this line selects, or "outlines"
 
 
 @dataclass(frozen=True)
@@ -50,6 +52,7 @@ class Audit:
     anchors: AnchorAudit
     layers: tuple[UfoLayers, ...]
     marks: tuple[SourceMarks, ...]
+    outlines: OutlineAudit
 
     def lines(self) -> tuple[AuditLine, ...]:
         result = []
@@ -62,6 +65,7 @@ class Audit:
                 anchor_lines.append(AuditLine(
                     f"Anchors · {ISSUE_TITLES[issue]}: {_glyphs(count)} ({by_source})", issue))
         result += anchor_lines or [AuditLine("Anchors · compatible")]
+        result.append(AuditLine(self.outlines.line(), "outlines"))
 
         layer_lines = []
         for ufo in self.layers:
