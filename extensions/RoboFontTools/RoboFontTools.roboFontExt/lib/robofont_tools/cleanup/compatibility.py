@@ -148,6 +148,7 @@ class CompatibilityWindow:
         self._result_glyph = None     # the glyph the result line is about
         self._drawn = ((), None, None, 0)   # rows, current, default, height last drawn
         self._drag = None           # (glyph name, row index, press x) while dragging
+        self._from_top = 0          # how far the rows are scrolled down from the top
         self.w.tabs.set(1)
         self.w.open()
 
@@ -298,12 +299,23 @@ class CompatibilityWindow:
         view = self.order.rows
         container = view.getMerzContainer()
         container.clearSublayers()
-        visible_width, visible_height = view.getSize()
+        # The document's y runs up from the bottom, so a new size would scroll
+        # the rows. Keep the same distance from the top instead: a new window
+        # starts at the first row, and redraws while editing don't jump.
+        # (Only a scrollable document says where the reader is; each refresh
+        # draws an empty tab first.)
+        document = view.getMerzView().getNSView()
+        shown = document.superview().bounds()       # the visible part
+        if document.frame().size.height > shown.size.height:
+            self._from_top = max(0, document.frame().size.height
+                                 - (shown.origin.y + shown.size.height))
         cells = max((len(outline.contours) for _source, outline in rows if outline), default=0)
-        width = max(visible_width, LABELS + max(cells, 1) * (CELL + GAP) + PAD)
-        height = max(visible_height, len(rows) * ROW + PAD)
+        width = max(shown.size.width, LABELS + max(cells, 1) * (CELL + GAP) + PAD)
+        height = max(shown.size.height, len(rows) * ROW + PAD)
         view.setMerzViewSize((width, height))
         container.setSize((width, height))
+        document.scrollPoint_((shown.origin.x,
+                               max(0, height - shown.size.height - self._from_top)))
         if not preview:     # a drag preview is not what the sources hold
             self._drawn = (tuple(rows), current, default, height)
         colours = _colours()
