@@ -96,11 +96,21 @@ def _current_glyph():
     if glyph is None:
         return None
     font = glyph.font
-    selected = frozenset(
-        (contour_index, point_index)
-        for contour_index, contour in enumerate(glyph.contours)
-        for point_index, point in enumerate(contour.points) if point.selected)
-    return (font.path if font is not None else None), glyph.layer.name, glyph.name, selected
+    return (font.path if font is not None else None), glyph.layer.name, glyph.name, \
+        _selected_points(glyph)
+
+
+def _selected_points(glyph):
+    """(contour index, point index) of each selected point.
+
+    The Glyph Editor gives a defcon glyph (RoboFont's DoodleGlyph), not a
+    scripting RGlyph: iterate it for contours, and contours for points.
+    """
+    if hasattr(glyph, "naked"):     # an RGlyph, if one is ever passed
+        glyph = glyph.naked()
+    return frozenset((contour_index, point_index)
+                     for contour_index, contour in enumerate(glyph)
+                     for point_index, point in enumerate(contour) if point.selected)
 
 
 def _rows_view(posSize, delegate):
