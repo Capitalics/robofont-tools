@@ -3,8 +3,9 @@
 It follows the current glyph (and so the current source) and compares it
 with the designspace loaded in Cleanup. Two tabs:
 
-- Points: one row per other source, the current source drawn beside a grey
-  ghost of that source, with a link line joining each pair of matching points.
+- Points: the current source drawn beside a grey ghost of one comparison
+  source, picked from a popup, with a link line joining each pair of
+  matching points. The drawing fills the tab.
 - Contour order: one row per source and one cell per contour. Drag a cell
   sideways in its row to reorder that source's contours.
 """
@@ -27,10 +28,9 @@ LABELS = 150       # source label column
 PAD = 10
 ROW = CELL + CAPTION + 2 * GAP
 
-DRAWING = 130      # Points tab: height of a glyph drawing
-STATUS = 18        # Points tab: the status line above the drawings
-APART = 40         # Points tab: space between the ghost and the current source
-POINTS_ROW = STATUS + DRAWING + 2 * GAP
+MARGIN = 16        # Points tab: space around the drawing, room for rings
+LABEL = 22         # Points tab: the source names under the drawing
+APART = 48         # Points tab: space between the ghost and the current source
 
 DIRECTION_MARKS = {"counter-clockwise": "↺", "clockwise": "↻", "open": "open", "": "?"}
 
@@ -157,15 +157,18 @@ def _colours():
 
 class CompatibilityWindow:
     def __init__(self):
-        from vanilla import Button, FloatingWindow, Tabs, TextBox
+        from merz import MerzView
+        from vanilla import Button, FloatingWindow, PopUpButton, Tabs, TextBox
 
-        self.w = FloatingWindow((760, 460), "Compatibility", minSize=(420, 260))
+        self.w = FloatingWindow((760, 520), "Compatibility", minSize=(460, 320))
         self.w.bind("close", self._closed)
         self.w.bind("resize", lambda sender: self.refresh())
         self.w.status = TextBox((12, 14, -150, 20), "")
         self.w.openCleanup = Button((-140, 10, 128, 24), "Open Cleanup",
                                     callback=self.open_cleanup)
-        self.w.tabs = Tabs((12, 44, -12, -12), ["Points", "Contour order"])
+        # A tab's view is only sized while it is shown: redraw on switching.
+        self.w.tabs = Tabs((12, 44, -12, -12), ["Points", "Contour order"],
+                           callback=lambda sender: self.refresh())
         self.points, self.order = self.w.tabs[0], self.w.tabs[1]
         self.points.setStart = Button((12, 8, 120, 24), "Set start point",
                                       callback=self.set_start_point)
@@ -174,7 +177,14 @@ class CompatibilityWindow:
         self.points.matchDefault = Button((278, 8, 110, 24), "Match Default",
                                           callback=self.match_default)
         self.points.result = TextBox((400, 12, -12, 20), "", sizeStyle="small")
-        self.points.rows = _rows_view((0, 40, -0, -0), delegate=None)
+        self.points.compareLabel = TextBox((12, 44, 92, 20), "Compare with:")
+        self.points.previous = Button((104, 40, 32, 24), "◀",
+                                      callback=lambda sender: self._step_comparison(-1))
+        self.points.comparison = PopUpButton((142, 41, -50, 22), [],
+                                             callback=self.choose_comparison)
+        self.points.next = Button((-44, 40, 32, 24), "▶",
+                                  callback=lambda sender: self._step_comparison(1))
+        self.points.drawing = MerzView((0, 74, -0, -0))
         self.order.matchOrder = Button((12, 8, 170, 24), "Match order to Default",
                                        callback=self.match_order)
         self.order.result = TextBox((194, 12, -12, 20), "", sizeStyle="small")
@@ -182,6 +192,8 @@ class CompatibilityWindow:
         self._glyph_name = None     # the glyph drawn now
         self._source = None         # the current source drawn now
         self._selected = frozenset()  # its selected (contour, point) pairs
+        self._comparison = None       # the comparison source, kept across glyphs
+        self._choices = ()            # (source, status) in the comparison popup
         self._result_glyph = None     # the glyph the result line is about
         self._drawn = ((), None, None, 0)   # rows, current, default, height last drawn
         self._drag = None           # (glyph name, row index, press x) while dragging
@@ -228,7 +240,7 @@ class CompatibilityWindow:
             self._show(f"{where} is not a source of {Path(designspace).name}.")
             return
         self._show(f"{name} · current source: {source.label} · "
-                   f"default: {session.default.label}")
+                   f"default: {session.default.label}", glyph_follows=True)
         self._glyph_name, self._source, self._selected = name, source, selected
         self.order.matchOrder.enable(True)
         self.points.setStart.enable(bool(selected))
@@ -238,18 +250,24 @@ class CompatibilityWindow:
             self.order.result.set("")
             self.points.result.set("")
         outlines = session.glyph_outlines(name)
-        self._draw_points(outlines, source, session.default, selected)
+        self._comparison = pick_comparison(session.sources, source, session.default,
+                                           self._comparison)
+        self._set_choices(comparison_choices(outlines, source), session.default)
+        self._draw_points(outlines, source, self._comparison, selected)
         self._draw_order(outlines, source, session.default)
 
-    def _show(self, status, ask_for_cleanup=False):
+    def _show(self, status, ask_for_cleanup=False, glyph_follows=False):
         """Set the status line and forget the glyph: clear the drawing and
-        disable the fix buttons, unless ``_refresh`` draws a glyph after."""
+        disable the fix buttons, unless ``_refresh`` draws a glyph after.
+        With ``glyph_follows``, the comparison popup is left for it to update."""
         self.w.status.set(status)
         self.w.openCleanup.show(ask_for_cleanup)
         self._glyph_name, self._source, self._selected = None, None, frozenset()
         self.order.matchOrder.enable(False)
         for button in (self.points.setStart, self.points.reverse, self.points.matchDefault):
             button.enable(False)
+        if not glyph_follows:
+            self._set_choices((), None)
         self._draw_points((), None, None, frozenset())
         self._draw_order((), None, None)
 
@@ -280,62 +298,88 @@ class CompatibilityWindow:
 
     # --- Points tab --------------------------------------------------------
 
-    def _draw_points(self, outlines, current, default, selected):
-        """One row per other source: its grey ghost, the current source beside
-        it, and a link line joining each pair of matching points."""
-        mine = dict(outlines).get(current) or Outline()
-        rows = [(source, outline) for source, outline in outlines if source != current]
-        drawn = [outline for _source, outline in rows if outline] + [mine]
-        place = _SharedFit([point for outline in drawn for contour in outline.contours
-                             for point in contour.points])
-        container, width, height = self._size_rows(
-            self.points.rows, LABELS + 2 * place.width + APART + PAD,
-            len(rows) * POINTS_ROW + PAD)
-        colours = _colours()
-        if current is not None and not rows:
-            _text(container, (PAD, height - PAD - 16), "No other sources.", 12, colours["soft"])
-        for index, (source, outline) in enumerate(rows):
-            top = height - PAD - index * POINTS_ROW
-            self._draw_points_row(container, source, outline, mine, place, top,
-                                  source == default, selected, colours)
+    def _set_choices(self, choices, default):
+        """Fill the comparison popup and select the comparison source."""
+        self._choices = choices
+        titles = [f"{source.label}{' (default)' if source == default else ''} · {status}"
+                  for source, status in choices]
+        popup = self.points.comparison
+        if list(popup.getItems()) != titles:   # rebuilding would close an open popup
+            popup.setItems(titles)
+        sources = [source for source, _status in choices]
+        if self._comparison in sources:
+            popup.set(sources.index(self._comparison))
+        popup.enable(bool(choices))
+        for button in (self.points.previous, self.points.next):
+            button.enable(len(choices) > 1)
 
-    def _draw_points_row(self, container, source, outline, mine, place, top, is_default,
-                         selected, colours):
-        _text(container, (PAD, top - 16), source.label, 12, colours["ink"])
-        if is_default:
-            _text(container, (PAD, top - 32), "default", 10, colours["soft"])
-        if outline is None:
-            _text(container, (LABELS, top - 16), "absent", 11, colours["soft"])
+    def choose_comparison(self, sender):
+        index = sender.get()
+        if 0 <= index < len(self._choices):
+            self._comparison = self._choices[index][0]
+            self.refresh()
+
+    def _step_comparison(self, step):
+        sources = [source for source, _status in self._choices]
+        if self._comparison not in sources:
             return
-        found = links(mine, outline)
-        status = found.status()
-        _text(container, (LABELS, top - 16), status, 11,
-              colours["soft"] if status == "compatible" else colours["wrong"])
-        bottom = top - STATUS - GAP - DRAWING
-        ghost = place.at(LABELS, bottom)
-        here = place.at(LABELS + place.width + APART, bottom)
-        ghost_points = [[ghost(x, y) for _kind, x, y in contour.points]
-                        for contour in outline.contours]
-        my_points = [[here(x, y) for _kind, x, y in contour.points]
-                     for contour in mine.contours]
-        for contour, points in zip(outline.contours, ghost_points):
-            _draw_contour(container, contour, points, colours["ghost"], colours["ghost"],
-                          colours["ghost"])
+        self._comparison = sources[(sources.index(self._comparison) + step) % len(sources)]
+        self.refresh()
+
+    def _draw_points(self, outlines, current, comparison, selected):
+        """The comparison source as a grey ghost, the current source beside
+        it, and a link line joining each pair of matching points, scaled to
+        fill the view."""
+        view = self.points.drawing
+        container = view.getMerzContainer()
+        container.clearSublayers()
+        if current is None:
+            return
+        width, height = view.width(), view.height()
+        colours = _colours()
+        if comparison is None:
+            _text(container, (width / 2, height / 2), "No other sources.", 12, colours["soft"],
+                  align="center")
+            return
+        by_source = dict(outlines)
+        mine, theirs = by_source.get(current) or Outline(), by_source.get(comparison)
+        place = _PairFit([point for outline in (mine, theirs) if outline
+                          for contour in outline.contours for point in contour.points],
+                         width, height)
+        ghost_x, here_x = place.lefts
+        _text(container, (ghost_x + place.width / 2, place.base - LABEL), comparison.label, 11,
+              colours["soft"], align="center")
+        _text(container, (here_x + place.width / 2, place.base - LABEL),
+              f"{current.label} · current", 11, colours["ink"], align="center")
+        here = place.at(here_x)
+        my_points = [[here(x, y) for _kind, x, y in contour.points] for contour in mine.contours]
         for contour, points in zip(mine.contours, my_points):
             _draw_contour(container, contour, points, colours["ink"], colours["soft"],
                           colours["start"])
-        for link in found.links:
-            container.appendLineSublayer(
-                startPoint=my_points[link.contour][link.point],
-                endPoint=ghost_points[link.contour][link.point],
-                strokeColor=colours["link"] if link.good else colours["wrong"],
-                strokeWidth=0.5 if link.good else 1)
+        if theirs is None:
+            _text(container, (ghost_x + place.width / 2, height / 2), "absent", 12,
+                  colours["soft"], align="center")
+            ghost_points, found = [], None
+        else:
+            ghost = place.at(ghost_x)
+            ghost_points = [[ghost(x, y) for _kind, x, y in contour.points]
+                            for contour in theirs.contours]
+            for contour, points in zip(theirs.contours, ghost_points):
+                _draw_contour(container, contour, points, colours["ghost"], colours["ghost"],
+                              colours["ghost"])
+            found = links(mine, theirs)
+            for link in found.links:
+                container.appendLineSublayer(
+                    startPoint=my_points[link.contour][link.point],
+                    endPoint=ghost_points[link.contour][link.point],
+                    strokeColor=colours["link"] if link.good else colours["wrong"],
+                    strokeWidth=0.5 if link.good else 1)
         for contour_index, point_index in selected:
             for points in (my_points, ghost_points):
                 point = _point_at(points, contour_index, point_index)
                 if point is not None:
                     _ring(container, point, 10, colours["selected"], 1.5)
-        if found.first_difference is not None:
+        if found is not None and found.first_difference is not None:
             for points in (my_points, ghost_points):
                 # A contour that stops short is marked at its last point.
                 point = _point_at(points, *found.first_difference, clamp=True)
@@ -522,6 +566,32 @@ def drag_order(count, press_x, release_x):
     return tuple(order)
 
 
+def pick_comparison(sources, current, default, previous):
+    """The comparison source for the Points tab.
+
+    ``previous`` stays while it is still another source. Otherwise the
+    Default source, or, when the current source is the Default, the first
+    other source in designspace order. None when there is no other source.
+    """
+    others = [source for source in sources if source != current]
+    if previous in others:
+        return previous
+    if default in others:
+        return default
+    return others[0] if others else None
+
+
+def comparison_choices(outlines, current):
+    """(source, status) for every other source, in designspace order.
+
+    ``outlines`` is session.glyph_outlines(); the status is "absent" where
+    the glyph is, else the links' status against the current source.
+    """
+    mine = dict(outlines).get(current) or Outline()
+    return tuple((source, "absent" if outline is None else links(mine, outline).status())
+                 for source, outline in outlines if source != current)
+
+
 def _fix_result(result, verb, unchanged):
     """One line saying what a fix changed, saved and refused; ``unchanged``
     is the line's start when nothing changed."""
@@ -589,24 +659,33 @@ def _ring(container, position, size, colour, width):
                                  fillColor=None, strokeColor=colour, strokeWidth=width)
 
 
-class _SharedFit:
-    """One scale for every drawing in the Points tab, so sources compare.
+class _PairFit:
+    """One scale for the ghost and the current source, as large as fits.
 
-    ``width`` is the widest drawing in view points; ``at(left, bottom)``
-    places glyph coordinates in a DRAWING-high box from ``left``, ``bottom``.
+    Both drawings share one box (the bounds of all their points), side by
+    side in a ``width`` x ``height`` view above the source names. ``lefts``
+    are the two boxes' left edges, ghost first; ``at(left)`` places glyph
+    coordinates in the box starting at ``left``. Lines are drawn in view
+    points, so only the outlines grow with the window.
     """
 
-    def __init__(self, points):
+    def __init__(self, points, width, height):
         xs = [point[1] for point in points] or [0]
         ys = [point[2] for point in points] or [0]
         self.left, self.bottom = min(xs), min(ys)
-        self.scale = (DRAWING - 10) / max(max(ys) - min(ys), 1)
-        self.width = (max(xs) - min(xs)) * self.scale + 10
+        box_width, box_height = max(max(xs) - min(xs), 1), max(max(ys) - min(ys), 1)
+        room_height = height - 2 * MARGIN - LABEL
+        self.scale = max(min((width - 2 * MARGIN - APART) / (2 * box_width),
+                             room_height / box_height), 0.001)
+        self.width = box_width * self.scale
+        first = (width - 2 * self.width - APART) / 2
+        self.lefts = (first, first + self.width + APART)
+        self.base = MARGIN + LABEL + (room_height - box_height * self.scale) / 2
 
-    def at(self, left, bottom):
+    def at(self, left):
         scale = self.scale
-        x_offset = left + 5 - self.left * scale
-        y_offset = bottom + 5 - self.bottom * scale
+        x_offset = left - self.left * scale
+        y_offset = self.base - self.bottom * scale
         return lambda x, y: (x * scale + x_offset, y * scale + y_offset)
 
 
