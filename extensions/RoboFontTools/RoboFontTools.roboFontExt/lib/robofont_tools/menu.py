@@ -11,8 +11,8 @@ class MenuTarget(NSObject):
         from .extension import open_window
         open_window()
 
-    def cleanAnchors_(self, sender):
-        from .scripts.anchors.clean_from_default import open_window
+    def openCleanup_(self, sender):
+        from .cleanup.window import open_window
         open_window()
 
 
@@ -38,13 +38,7 @@ def install_menu():
     submenu = NSMenu.alloc().initWithTitle_(MENU_TITLE)
     submenu.addItem_(_item("Open Palette", "openPalette:", _target))
 
-    anchors_menu = NSMenu.alloc().initWithTitle_("Anchors")
-    anchors_menu.addItem_(_item("Remove Extras from Open UFOs…", "cleanAnchors:", _target))
-    anchors_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-        "Anchors", "", ""
-    )
-    anchors_item.setSubmenu_(anchors_menu)
-    submenu.addItem_(anchors_item)
+    submenu.addItem_(_item("Cleanup…", "openCleanup:", _target))
 
     top = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(MENU_TITLE, "", "")
     top.setSubmenu_(submenu)

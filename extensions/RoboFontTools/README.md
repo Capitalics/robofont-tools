@@ -2,7 +2,7 @@
 
 RoboFont Tools is a compact home for small utilities used while drawing. It
 contains two read-only measurement tools, a point distribution action, a
-contour selection action, a rough slicing knife, and a designspace anchor tool.
+contour selection action, a rough slicing knife, and a designspace Cleanup window.
 
 ## Supported environment
 
@@ -23,26 +23,13 @@ extensions after installing it.
 No build step or third-party dependency installation is required. The extension
 uses RoboFont's bundled EZUI, Subscriber, and FontParts APIs.
 
-## Script menu
+## Menu
 
 RoboFont Tools adds a top-level **RoboFont Tools** menu at startup, beside the
-other application menus. **Open Palette** opens the existing drawing palette.
-Standalone scripts are grouped by task so future scripts can be added without
-another palette button. The existing **Extensions → RoboFont Tools** entry also
-opens the palette.
-
-Choose **RoboFont Tools → Anchors → Remove Extras from Open UFOs…** to clean
-anchors across the fonts currently open in RoboFont. Choose one open UFO as the
-default and click **Preview Changes**. For each matching glyph in every other
-open UFO, the script lists anchors whose names are absent from that glyph in
-the default. A source glyph with no matching default glyph is skipped and
-reported. If the matching default glyph has no anchors, all anchors in that
-source glyph are listed for removal.
-
-Click **Apply (Leave Unsaved)** to remove the listed anchors. The script checks
-the open fonts and anchor plan again before applying. Each changed glyph gets
-an undo action. The UFOs remain open with unsaved changes so you can inspect
-them and decide when to save. The default UFO is never changed.
+other application menus. **Open Palette** opens the drawing palette and
+**Cleanup…** opens the designspace Cleanup window (also available from the
+palette). The existing **Extensions → RoboFont Tools** entry also opens the
+palette.
 
 ## Opening and using the palette
 
@@ -52,10 +39,13 @@ if it is already open.
 Enable **Measure Selected Points**, then select exactly two contour points in
 the active Glyph Editor. A live editor overlay displays:
 
-- absolute horizontal distance (`ΔX`);
-- absolute vertical distance (`ΔY`);
-- direct Euclidean distance;
-- compact labels for the distance and deltas.
+- direct distance;
+- horizontal and vertical distance (`Δx`, `Δy`);
+- angle.
+
+Measurements follow outline order: from the first selected point to the
+second as they appear in the glyph's contours, so `Δx`, `Δy` and the angle
+(−180° to 180°) carry a sign.
 
 On-curve and off-curve contour points are supported. Other selected objects are
 ignored. The overlay hides unless exactly two points are selected.
@@ -115,8 +105,8 @@ only changes selection; it does not alter outlines or create an undo record.
 
 ### Rough Slice
 
-Set **Spacing**, **Gap**, and **Jitter** in the palette, then click **Activate
-Knife**. The button reads **Knife Active — Drag** when the tool is selected.
+Set **Spacing**, **Gap**, and **Jitter** in the palette row (hover a field for
+its description), then click **Activate Knife**. The button reads **Knife Active — Drag** when the tool is selected.
 Drag a straight line across the outlines in the Glyph Editor; a click alone
 does not cut. Each
 closed contour crossed cleanly is split into two contours. The two new cut
@@ -125,30 +115,44 @@ default). The edges wiggle independently while retaining at least the chosen
 gap (20 units by default) at every point along them. Jitter defaults to 30
 units. Each drag is one undoable action.
 
-Spacing accepts 5–50 units; gap must be positive and jitter nonnegative. A
+Spacing accepts 5–50 units; gap and jitter cannot be negative. A gap of 0
+leaves the two pieces touching along one shared rough edge.
+
+**Two sources at once.** Pick a font in **Second source** and draw in the
+default source. The same cut is made in both: the default gets gap 0, the
+second source gets the **Gap** value, and both use the same rough pattern and
+point count so they stay compatible for interpolation. If the results would not
+be compatible, or the second source lacks the glyph or layer, neither font is
+changed and the reason is printed. Undo is per font. Choose **None (single
+source)** for an ordinary cut. A
 drag that does not enter and leave a contour cleanly has no effect. Open
 contours and components are skipped. To stop using the
 knife, choose another Glyph Editor tool.
 The knife appears in the Glyph Editor toolbar with a serrated blade icon.
 
-### Unify Anchors from Default
+### Cleanup (designspace)
 
-Click **Unify from Default…**, load a `.designspace`, and check the default UFO
-shown in the window. The designspace default is selected automatically; use
-**Choose Default UFO…** to select another source in that designspace. Click
-**Preview Changes** to see changes per glyph and source, then **Apply and Save**.
+Click **Cleanup…** in the palette (or choose **RoboFont Tools → Cleanup…**),
+then **Load Designspace…**. The designspace default is used; **Choose
+Default…** picks another full source. The source list shows which sources are
+open in RoboFont and which are closed. Layer-sources (`<source layer="…">`)
+are included; one whose layer is missing is skipped with a warning.
 
-The tool adds anchors missing from each non-default source at the default's
-coordinates. Anchors already present keep their names and source-specific
-positions. Anchors are put in the default's order for xTools compatibility.
-Anchors found only in a non-default source are listed and retained after the
-default anchors.
-Glyphs missing from a source and glyphs with duplicate anchor names are listed
-and skipped. The tool changes anchor data only; it does not alter outlines or
-convert between cubic and quadratic curves. Open source fonts are updated in
-RoboFont, and changed sources are saved. Because extra anchors remain by choice,
-xTools may still flag those glyphs as anchor incompatible until you review the
-extras.
+**Anchors.** Every glyph in the default whose anchors differ in another source
+is listed: missing or extra anchor names, a different order, or duplicate
+names. Glyphs absent from a source are allowed in a variable font and are only
+counted. Select rows (Cmd-A for all), then:
+
+- **Match Default** gives each source the default's anchor names in the
+  default's order. Existing anchors keep their positions; missing ones are
+  added at the default's coordinates and listed afterwards so you can check
+  them. Rows with duplicate names are skipped.
+- **Remove All Anchors** removes the glyph's anchors from every source,
+  including the default.
+
+Open fonts are changed with undo and left unsaved; closed UFOs are saved
+immediately. The list rescans after each fix; **Rescan** refreshes it after
+manual edits.
 
 ## Project structure
 
@@ -156,13 +160,15 @@ extras.
 RoboFontTools.roboFontExt/
     info.plist                  extension metadata and menu entry
     lib/
+        start.py                startup script (installs the menu)
         startup.py              Extensions-menu entry point
         robofont_tools/
             extension.py       singleton palette lifecycle
-            menu.py            top-level script menu
-            palette.py         EZWindow and tool registration
-            geometry.py        pure calculations and formatting
+            menu.py            top-level menu
+            palette.py         stacks the registered tools in one EZWindow
+            geometry.py        the measuring rule and number formatting
             tools/
+                base.py                   PaletteTool: the interface every tool provides
                 selected_points.py        editor overlay and event lifecycle
                 selected_points_model.py  read-only presentation logic
                 selected_points_state.py  shared enabled state
@@ -171,31 +177,27 @@ RoboFontTools.roboFontExt/
                 distribute_points_model.py pure distribution maths
                 select_between.py        one-shot contour selection action
                 select_between_model.py  route choice and repeat-click state
-                rough_slice.py          interactive knife and contour slicing
+                rough_slice.py          knife, single and two-source cuts
                 rough_slice_model.py    paired rough edges with a guaranteed gap
-                unify_anchors.py       designspace anchor window and source updates
-                unify_anchors_model.py default detection and anchor comparison
-            scripts/
-                anchors/
-                    clean_from_default.py       open-UFO cleanup window and action
-                    clean_from_default_model.py per-glyph removal plan
-tests/
-    test_geometry.py
-    test_bundle.py
-    test_distribute_points_model.py
-    test_select_between.py
-    test_rough_slice_model.py
+                cleanup.py              palette button for the Cleanup window
+            cleanup/
+                sources.py     designspace sources, including layer-sources
+                anchors.py     anchor differences, fix plans, applying an edit
+                session.py     reads and changes open and closed sources
+                window.py      the Cleanup window
 ```
 
-The `tests/` folder is beside the installable bundle, not inside it. The team
-package contains only the `.roboFontExt` bundle and separate utility scripts.
+Development tests live in `tests/` beside the bundle and are kept locally, not
+in the repository. The team package contains only the `.roboFontExt` bundle and
+separate utility scripts.
 
-To add a future tool, place its logic in `robofont_tools/tools/`, give its tool
-class an EZUI row (`content` and `description_data`), and return the class from
-`get_tool_classes()`. Keep geometry and formatting independent of RoboFont
+To add a tool, subclass `PaletteTool` in `robofont_tools/tools/`: give it an
+EZUI `content` row and a `descriptions()` method whose callbacks are the
+tool's own methods, then return the class from `get_tool_classes()`. The
+palette needs no changes. Keep geometry and formatting independent of RoboFont
 wherever possible. A tool that subscribes to events must expose idempotent
-`start()` and `stop()` methods and release its
-subscriber/controller references in `stop()`.
+`start()` and `stop()` methods and release its subscriber/controller
+references in `stop()`.
 
 ## Development checks
 

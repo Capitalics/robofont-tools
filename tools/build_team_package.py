@@ -31,7 +31,7 @@ validated with RoboFont 4.6. No Python package installation is needed for the
 palette.
 
 The palette contains Measure Selected Points, Contour Probe, Distribute Points,
-Select Between, Rough Slice, and Unify Anchors. For Select Between, select two points on one contour and
+Select Between, Rough Slice, and a Cleanup button. For Select Between, select two points on one contour and
 click **Select Points**. A second click switches to the other route on a closed
 contour. Off-curve handles are included.
 
@@ -41,12 +41,14 @@ or more closed contours. The palette fields set point spacing (25 units by defau
 the visible gap, and jitter. One drag is one undoable edit. Use another Glyph
 Editor tool to leave knife mode. Open contours and components are skipped.
 
-For Unify Anchors, open the tool window, load a designspace, check its detected
-default source (or choose another source UFO), and preview before applying.
-Missing anchors are added at default coordinates. Existing source positions are
-kept, anchors are put in default order, and extras are retained after them.
-Missing glyphs and ambiguous duplicate names are reported.
-Retained extra anchors may still be reported as incompatible by xTools.
+Pick a **Second source** to make the same cut in two sources at once: the
+source you draw in gets gap 0, the second source gets the Gap value.
+
+Click **Cleanup…** (or **RoboFont Tools → Cleanup…**) and load a designspace.
+The Anchors section lists glyphs whose anchors differ between sources. Select
+rows and click **Match Default** (default names and order; missing anchors are
+added at default coordinates) or **Remove All Anchors** (every source). Open
+fonts are changed with undo and left unsaved; closed UFOs are saved.
 
 ## Use the standalone scripts
 

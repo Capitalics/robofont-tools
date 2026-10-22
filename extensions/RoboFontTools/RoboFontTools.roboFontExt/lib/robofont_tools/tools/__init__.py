@@ -8,10 +8,10 @@ def get_tool_classes():
     from .select_between import SelectBetweenTool
     from .selected_points import SelectedPointsTool
     from .rough_slice import RoughSliceTool
-    from .unify_anchors import UnifyAnchorsTool
+    from .cleanup import CleanupTool
 
     return (SelectedPointsTool, ContourProbeTool, DistributePointsTool,
-            SelectBetweenTool, RoughSliceTool, UnifyAnchorsTool)
+            SelectBetweenTool, RoughSliceTool, CleanupTool)
 
 
 __all__ = ("get_tool_classes",)
