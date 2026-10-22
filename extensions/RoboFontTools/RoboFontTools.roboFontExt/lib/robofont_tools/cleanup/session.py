@@ -13,7 +13,10 @@ from .anchors import (
     apply_edit, audit_anchors, find_differences, plan_match_default, plan_remove_all,
 )
 from .audit import Audit, SourceMarks, ufo_layers
-from .outlines import Contour, Outline, audit_outlines, plan_order
+from .outlines import (
+    Contour, Outline, audit_outlines, plan_contours, plan_order, plan_reverse,
+    plan_start_points,
+)
 
 
 
@@ -56,6 +59,29 @@ def _reorder(glyph, order):
     pen = glyph.getPointPen()
     for index in order:
         recorded[index].replay(pen)
+
+
+def _fix_contours(glyph, fixes):
+    """Apply ContourFixes to ``glyph``: reverse, then rotate the start point.
+
+    Contours are redrawn in place, keeping identifiers and the order.
+    """
+    from fontTools.pens.pointPen import ReverseContourPointPen
+    from fontTools.pens.recordingPen import RecordingPointPen
+    by_index = {fix.contour: fix for fix in fixes}
+    recorded = []
+    for index, contour in enumerate(glyph):
+        pen = RecordingPointPen()
+        fix = by_index.get(index)
+        contour.drawPoints(ReverseContourPointPen(pen) if fix and fix.reverse else pen)
+        if fix and fix.start:
+            begin, *points, end = pen.value
+            pen.value = [begin, *points[fix.start:], *points[:fix.start], end]
+        recorded.append(pen)
+    glyph.clearContours()
+    pen = glyph.getPointPen()
+    for contour in recorded:
+        contour.replay(pen)
 
 
 def _outline(glyph):
@@ -226,6 +252,60 @@ class CleanupSession:
                                        "Match Order to Default")
                 changed.append(source.label)
         return OutlineFixResult(tuple(changed), self._save(changes), tuple(refused))
+
+    def _fix_glyph(self, label, name, title, plan):
+        """Run ``plan(outline)`` -> ContourPlan on one source's glyph and apply it.
+
+        Refused contours are listed as (label, "contour N: reason"). Callers
+        reset the closed-UFO cache first.
+        """
+        changes = _Changes(self._open_fonts())
+        source = next((source for source in self.sources if source.label == label), None)
+        if source is None:
+            raise ValueError(f"{label} is not a source")
+        layer = self._layer(source, changes.open_fonts)
+        if layer is None or name not in layer:
+            return OutlineFixResult((), (), ((label, f"no glyph {name}"),))
+        found = plan(_outline(layer[name]))
+        refused = tuple((label, f"contour {index + 1}: {reason}")
+                        for index, reason in found.refused)
+        if not found.fixes:
+            return OutlineFixResult((), (), refused)
+        self._change_glyphs(changes, source, [name], title,
+                            lambda glyph: _fix_contours(glyph, found.fixes))
+        return OutlineFixResult((label,), self._save(changes), refused)
+
+    def set_start_points(self, label, name, selected):
+        """Start each selected contour of ``name`` at its selected point.
+
+        ``selected`` holds (contour index, point index) pairs.
+        """
+        self._closed = {}
+        if not selected:
+            return OutlineFixResult((), (), ((label, "no points selected"),))
+        return self._fix_glyph(label, name, "Set Start Point",
+                               lambda outline: plan_start_points(outline, selected))
+
+    def reverse_contours(self, label, name, selected):
+        """Reverse each contour of ``name`` with a selected point."""
+        self._closed = {}
+        if not selected:
+            return OutlineFixResult((), (), ((label, "no points selected"),))
+        return self._fix_glyph(label, name, "Reverse Direction",
+                               lambda outline: plan_reverse(outline, selected))
+
+    def match_contours_to_default(self, label, name):
+        """Give each contour of ``name`` in one source the start point and
+        direction of its Default partner; list the contours that can't match."""
+        self._closed = {}
+        if label == self.default.label:
+            return OutlineFixResult((), (), ((label, "this is the Default source"),))
+        default_layer = self._layer(self.default, self._open_fonts())
+        if default_layer is None or name not in default_layer:
+            return OutlineFixResult((), (), ((self.default.label, f"no glyph {name}"),))
+        default = _outline(default_layer[name])
+        return self._fix_glyph(label, name, "Match Contours to Default",
+                               lambda outline: plan_contours(default, outline))
 
     # --- anchors ---------------------------------------------------------
 

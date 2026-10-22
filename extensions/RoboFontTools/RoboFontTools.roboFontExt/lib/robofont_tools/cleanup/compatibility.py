@@ -167,12 +167,21 @@ class CompatibilityWindow:
                                     callback=self.open_cleanup)
         self.w.tabs = Tabs((12, 44, -12, -12), ["Points", "Contour order"])
         self.points, self.order = self.w.tabs[0], self.w.tabs[1]
-        self.points.rows = _rows_view((0, 0, -0, -0), delegate=None)
+        self.points.setStart = Button((12, 8, 120, 24), "Set start point",
+                                      callback=self.set_start_point)
+        self.points.reverse = Button((140, 8, 130, 24), "Reverse direction",
+                                     callback=self.reverse_direction)
+        self.points.matchDefault = Button((278, 8, 110, 24), "Match Default",
+                                          callback=self.match_default)
+        self.points.result = TextBox((400, 12, -12, 20), "", sizeStyle="small")
+        self.points.rows = _rows_view((0, 40, -0, -0), delegate=None)
         self.order.matchOrder = Button((12, 8, 170, 24), "Match order to Default",
                                        callback=self.match_order)
         self.order.result = TextBox((194, 12, -12, 20), "", sizeStyle="small")
         self.order.rows = _rows_view((0, 40, -0, -0), delegate=self)
         self._glyph_name = None     # the glyph drawn now
+        self._source = None         # the current source drawn now
+        self._selected = frozenset()  # its selected (contour, point) pairs
         self._result_glyph = None     # the glyph the result line is about
         self._drawn = ((), None, None, 0)   # rows, current, default, height last drawn
         self._drag = None           # (glyph name, row index, press x) while dragging
@@ -220,10 +229,14 @@ class CompatibilityWindow:
             return
         self._show(f"{name} · current source: {source.label} · "
                    f"default: {session.default.label}")
-        self._glyph_name = name
+        self._glyph_name, self._source, self._selected = name, source, selected
         self.order.matchOrder.enable(True)
+        self.points.setStart.enable(bool(selected))
+        self.points.reverse.enable(bool(selected))
+        self.points.matchDefault.enable(source != session.default)
         if name != self._result_glyph:
             self.order.result.set("")
+            self.points.result.set("")
         outlines = session.glyph_outlines(name)
         self._draw_points(outlines, source, session.default, selected)
         self._draw_order(outlines, source, session.default)
@@ -233,8 +246,10 @@ class CompatibilityWindow:
         disable the fix buttons, unless ``_refresh`` draws a glyph after."""
         self.w.status.set(status)
         self.w.openCleanup.show(ask_for_cleanup)
-        self._glyph_name = None
+        self._glyph_name, self._source, self._selected = None, None, frozenset()
         self.order.matchOrder.enable(False)
+        for button in (self.points.setStart, self.points.reverse, self.points.matchDefault):
+            button.enable(False)
         self._draw_points((), None, None, frozenset())
         self._draw_order((), None, None)
 
@@ -327,6 +342,46 @@ class CompatibilityWindow:
                 if point is not None:
                     _ring(container, point, 14, colours["wrong"], 2)
 
+    # --- fixes -------------------------------------------------------------
+
+    def _run_fix(self, name, fix, result_box, verb, unchanged):
+        """Run ``fix(session, name)``, show its result line in ``result_box``
+        and redraw."""
+        from .window import loaded
+        session, _designspace = loaded()
+        if session is None:
+            self.refresh()
+            return
+        try:
+            message = _fix_result(fix(session, name), verb, unchanged)
+        except Exception as error:
+            message = f"Stopped after an error: {error}. Check the sources before saving."
+            traceback.print_exc()
+        self._result_glyph = name
+        result_box.set(message)
+        self.refresh()
+        print(f"RoboFont Tools / Compatibility: {name}: {message}")
+
+    def _run_points_fix(self, fix):
+        """Run a Points tab fix on the current source's glyph."""
+        if self._glyph_name is None:
+            return
+        label, selected = self._source.label, self._selected
+        self._run_fix(self._glyph_name, lambda session, name: fix(session, label, name, selected),
+                      self.points.result, "Fixed", "Nothing to fix")
+
+    def set_start_point(self, sender):
+        self._run_points_fix(lambda session, label, name, selected:
+                             session.set_start_points(label, name, selected))
+
+    def reverse_direction(self, sender):
+        self._run_points_fix(lambda session, label, name, selected:
+                             session.reverse_contours(label, name, selected))
+
+    def match_default(self, sender):
+        self._run_points_fix(lambda session, label, name, _selected:
+                             session.match_contours_to_default(label, name))
+
     # --- Contour order tab -------------------------------------------------
 
     def match_order(self, sender):
@@ -335,21 +390,8 @@ class CompatibilityWindow:
                                 lambda session, name: session.match_order_to_default(name))
 
     def _run_order_fix(self, name, fix):
-        """Run ``fix(session, name)``, show its result line and redraw."""
-        from .window import loaded
-        session, _designspace = loaded()
-        if session is None:
-            self.refresh()
-            return
-        try:
-            message = _order_result(fix(session, name))
-        except Exception as error:
-            message = f"Stopped after an error: {error}. Check the sources before saving."
-            traceback.print_exc()
-        self._result_glyph = name
-        self.order.result.set(message)
-        self.refresh()
-        print(f"RoboFont Tools / Compatibility: {name}: {message}")
+        """Run a Contour order tab fix (Match order to Default or a drop)."""
+        self._run_fix(name, fix, self.order.result, "Reordered", "Nothing to reorder")
 
     # Dragging a cell. The merz view passes its AppKit mouse events (NSEvent)
     # here; positions are in the merz document view, y up from the bottom,
@@ -480,10 +522,10 @@ def drag_order(count, press_x, release_x):
     return tuple(order)
 
 
-def _order_result(result):
-    """One line saying what Match order to Default changed, saved and refused."""
-    parts = [("Reordered " + ", ".join(result.changed)) if result.changed
-             else "Nothing to reorder"]
+def _fix_result(result, verb, unchanged):
+    """One line saying what a fix changed, saved and refused; ``unchanged``
+    is the line's start when nothing changed."""
+    parts = [(f"{verb} " + ", ".join(result.changed)) if result.changed else unchanged]
     if result.saved:
         parts.append("saved " + ", ".join(result.saved))
     if result.refused:

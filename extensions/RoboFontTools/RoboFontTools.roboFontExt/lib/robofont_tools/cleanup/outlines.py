@@ -177,6 +177,84 @@ def plan_order(default: tuple[Contour, ...], contours: tuple[Contour, ...]) -> O
     return OrderPlan(order)
 
 
+@dataclass(frozen=True)
+class ContourFix:
+    contour: int        # contour index in the source being fixed
+    reverse: bool       # reverse the contour first
+    start: int          # then make this point (index after any reversal) the start point
+
+
+@dataclass(frozen=True)
+class ContourPlan:
+    fixes: tuple[ContourFix, ...] = ()
+    refused: tuple[tuple[int, str], ...] = ()   # (contour index, reason)
+
+
+def plan_contours(default: Outline, current: Outline) -> ContourPlan:
+    """The start points and directions that make ``current``'s contours match
+    their Default partners. Contours already matching need no fix.
+
+    A contour's partner is the one contour_order pairs it with, so contours
+    out of order still get the right start point; failing an order, the
+    Default contour at the same index.
+    """
+    order = contour_order(default.contours, current.contours)
+    if order is None:
+        order = range(min(len(default.contours), len(current.contours)))
+    partners = {index: default.contours[default_index]
+                for default_index, index in enumerate(order)}
+    fixes, refused = [], []
+    for index, contour in enumerate(current.contours):
+        wanted = partners.get(index)
+        if wanted is None:
+            refused.append((index, f"no contour {index + 1} in the Default source"))
+            continue
+        if wanted.closed != contour.closed:
+            mine, theirs = ("closed", "open") if contour.closed else ("open", "closed")
+            refused.append((index, f"{mine}, the Default source's contour is {theirs}"))
+            continue
+        found = align(wanted, contour)
+        if found is None:
+            refused.append((index, "points differ from the Default source"))
+        elif any(found):
+            fixes.append(ContourFix(index, *found))
+    return ContourPlan(tuple(fixes), tuple(refused))
+
+
+def _selected_by_contour(outline, selected):
+    by_contour = {}
+    for contour, point in sorted(selected):
+        if contour < len(outline.contours) and point < len(outline.contours[contour].points):
+            by_contour.setdefault(contour, []).append(point)
+    return by_contour
+
+
+def plan_start_points(outline: Outline, selected) -> ContourPlan:
+    """Start each contour with a selected point at that point.
+
+    ``selected`` holds (contour index, point index) pairs. A contour needs
+    exactly one selected on-curve point, and must be closed.
+    """
+    fixes, refused = [], []
+    for index, points in _selected_by_contour(outline, selected).items():
+        contour = outline.contours[index]
+        if len(points) > 1:
+            refused.append((index, f"select one point to start from, not {len(points)}"))
+        elif not contour.closed:
+            refused.append((index, "an open contour starts at one of its ends"))
+        elif contour.points[points[0]][0] == "offcurve":
+            refused.append((index, "the selected point is off-curve"))
+        elif points[0]:
+            fixes.append(ContourFix(index, False, points[0]))
+    return ContourPlan(tuple(fixes), tuple(refused))
+
+
+def plan_reverse(outline: Outline, selected) -> ContourPlan:
+    """Reverse each contour with a selected point."""
+    return ContourPlan(tuple(ContourFix(index, True, 0)
+                             for index in _selected_by_contour(outline, selected)))
+
+
 def _assign(wanted, found, cost):
     """Pair ``wanted`` with ``found`` at the lowest total cost, keeping order on ties."""
     best = list(zip(wanted, found))
