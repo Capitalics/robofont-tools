@@ -15,7 +15,7 @@ from dataclasses import replace
 from pathlib import Path
 import traceback
 
-from .outlines import Outline, describe, links
+from .outlines import Outline, contour_issues, describe, links
 
 
 _window = None
@@ -159,12 +159,14 @@ def _colours():
                 "cell": (1, 1, 1, 0.06), "current": (0.3, 0.55, 1, 0.16),
                 "start": (1, 0.45, 0.3, 1), "ghost": (0.5, 0.5, 0.5, 1),
                 "link": (0.45, 0.65, 1, 0.7), "wrong": (1, 0.3, 0.3, 1),
-                "selected": (0.3, 0.6, 1, 1)}
+                "selected": (0.3, 0.6, 1, 1), "issue": (1, 0.3, 0.3, 0.14),
+                "issue_edge": (1, 0.35, 0.35, 0.5)}
     return {"ink": (0.15, 0.15, 0.15, 1), "soft": (0.45, 0.45, 0.45, 1),
             "cell": (0, 0, 0, 0.05), "current": (0.2, 0.45, 1, 0.12),
             "start": (0.9, 0.3, 0.1, 1), "ghost": (0.65, 0.65, 0.65, 1),
             "link": (0.2, 0.45, 1, 0.55), "wrong": (0.9, 0.1, 0.1, 1),
-            "selected": (0.1, 0.4, 1, 1)}
+            "selected": (0.1, 0.4, 1, 1), "issue": (0.9, 0.1, 0.1, 0.08),
+            "issue_edge": (0.9, 0.1, 0.1, 0.35)}
 
 
 class CompatibilityWindow:
@@ -508,12 +510,20 @@ class CompatibilityWindow:
         if not preview:     # a drag preview is not what the sources hold
             self._drawn = (tuple(rows), current, default, height)
         colours = _colours()
+        default_outline = dict(rows).get(default)
         for index, (source, outline) in enumerate(rows):
             top = height - PAD - index * ROW
+            issues, missing = (), 0
+            if outline and default_outline and source != default:
+                issues = contour_issues(default_outline, outline)
+                missing = max(0, len(default_outline.contours) - len(outline.contours))
             self._draw_row(container, source, outline, top, width, colours,
-                           source == current, source == default)
+                           source == current, source == default, issues, missing)
 
-    def _draw_row(self, container, source, outline, top, width, colours, is_current, is_default):
+    def _draw_row(self, container, source, outline, top, width, colours, is_current,
+                  is_default, issues, missing):
+        """One source's row; contours in ``issues`` are tinted red, and
+        ``missing`` empty red cells follow for Default contours it lacks."""
         bottom = top - ROW + GAP
         if is_current:
             container.appendRectangleSublayer(
@@ -529,12 +539,22 @@ class CompatibilityWindow:
             return
         for number, contour in enumerate(outline.contours):
             left = LABELS + number * (CELL + GAP)
-            self._draw_cell(container, contour, number, left, top - CELL, colours)
+            self._draw_cell(container, contour, number, left, top - CELL, colours,
+                            number in issues)
+        for number in range(len(outline.contours), len(outline.contours) + missing):
+            left = LABELS + number * (CELL + GAP)
+            container.appendRectangleSublayer(
+                position=(left, top - CELL), size=(CELL, CELL), fillColor=colours["issue"],
+                strokeColor=colours["issue_edge"], strokeWidth=1, cornerRadius=4)
+            _text(container, (left + CELL / 2, top - CELL - CAPTION + 2),
+                  f"{number + 1} · missing", 10, colours["soft"], align="center")
 
-    def _draw_cell(self, container, contour, number, left, bottom, colours):
+    def _draw_cell(self, container, contour, number, left, bottom, colours, issue=False):
         container.appendRectangleSublayer(
-            position=(left, bottom), size=(CELL, CELL), fillColor=colours["cell"],
-            cornerRadius=4)
+            position=(left, bottom), size=(CELL, CELL),
+            fillColor=colours["issue"] if issue else colours["cell"],
+            strokeColor=colours["issue_edge"] if issue else None,
+            strokeWidth=1 if issue else 0, cornerRadius=4)
         direction, count = describe(contour)
         _text(container, (left + CELL / 2, bottom - CAPTION + 2),
               f"{number + 1} · {count} pts · {DIRECTION_MARKS[direction]}", 10,

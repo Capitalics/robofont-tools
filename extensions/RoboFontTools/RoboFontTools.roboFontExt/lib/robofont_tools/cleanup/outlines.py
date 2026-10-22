@@ -441,3 +441,14 @@ def links(current: Outline, other: Outline) -> Links:
     if first_difference is None and counts[0] != counts[1]:
         first_difference = (min(counts), 0)     # the first contour without a partner
     return Links(tuple(found), first_difference, counts)
+
+
+def contour_issues(default: Outline, outline: Outline) -> frozenset[int]:
+    """Indices of ``outline``'s contours that don't match the Default
+    contour with the same index: any wrong link, another point count, or
+    no partner at all."""
+    wrong = {link.contour for link in links(default, outline).links if not link.good}
+    wrong |= {index for index, (theirs, mine) in enumerate(zip(default.contours,
+                                                                outline.contours))
+              if len(theirs.points) != len(mine.points)}
+    return frozenset(wrong | set(range(len(default.contours), len(outline.contours))))
