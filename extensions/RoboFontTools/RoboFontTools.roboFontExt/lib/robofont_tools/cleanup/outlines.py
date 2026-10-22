@@ -57,11 +57,6 @@ def _normalised(points):
     return [((x - min(xs)) / width, (y - min(ys)) / height) for x, y in zip(xs, ys)]
 
 
-def _distance(a, b):
-    return sum((ax - bx) ** 2 + (ay - by) ** 2
-               for (ax, ay), (bx, by) in zip(_normalised(a), _normalised(b)))
-
-
 def _area(points):
     """Twice the signed area of the point polygon; positive is counter-clockwise."""
     return sum(x0 * y1 - x1 * y0 for (_t0, x0, y0), (_t1, x1, y1)
@@ -83,36 +78,50 @@ def describe(contour: Contour):
     return direction, len(points)
 
 
-def align(default: Contour, contour: Contour):
-    """Return (reversed, rotation) that make ``contour`` line up with ``default``.
+@dataclass(frozen=True)
+class Alignment:
+    """How a contour lines up with its Default partner, by point types alone."""
+    reverse: bool       # run the contour the other way (known from the winding)
+    start: int | None   # the point (after any reversal) to start at; None when
+                        # several fit and the current start point is not one
 
-    ``rotation`` is the index (after any reversal) of the point that should
-    be the start point. None when no rotation or reversal makes the point
-    types line up. Direction comes from the sign of the area when both
-    contours have one; position picks the start point and breaks other ties.
+
+def align(default: Contour, contour: Contour) -> Alignment | None:
+    """Line ``contour`` up with ``default`` by point order and type only.
+
+    None when no start point or direction makes the point types line up.
+    Direction comes from the sign of the area when both contours have one.
+    Where the types allow several start points (every corner of a square is
+    a line point), the current one is kept if it is among them; otherwise
+    the start point can't be told and ``start`` is None. Position is never
+    used.
     """
     if default.closed != contour.closed or len(default.points) != len(contour.points):
         return None
     if not contour.points:
-        return False, 0
+        return Alignment(False, 0)
     wanted = _types(default.points)
     directions = (False, True)
     if default.closed:
         default_area, area = _area(list(default.points)), _area(list(contour.points))
         if default_area and area:
             directions = ((default_area > 0) != (area > 0),)
-    best = None
+    found = []
     for flip in directions:
         points = list(_reversed(contour) if flip else contour.points)
         rotations = range(len(points)) if contour.closed else (0,)
-        for rotation in rotations:
-            candidate = points[rotation:] + points[:rotation]
-            if _types(candidate) != wanted:
-                continue
-            cost = _distance(default.points, candidate)
-            if best is None or cost < best[0] - 1e-9:
-                best = (cost, flip, rotation)
-    return None if best is None else best[1:]
+        found += [(flip, rotation) for rotation in rotations
+                  if _types(points[rotation:] + points[:rotation]) == wanted]
+    if not found:
+        return None
+    if (False, 0) in found:
+        return Alignment(False, 0)
+    flips = {flip for flip, _rotation in found}
+    if len(flips) > 1:
+        return Alignment(False, None)
+    starts = [rotation for _flip, rotation in found]
+    return Alignment(flips.pop(),
+                     0 if 0 in starts else starts[0] if len(starts) == 1 else None)
 
 
 def _structure(contour):
@@ -191,68 +200,34 @@ class ContourPlan:
 
 
 def plan_contours(default: Outline, current: Outline) -> ContourPlan:
-    """The start points and directions that make ``current``'s contours match
-    their Default partners. Contours already matching need no fix.
-
-    A contour's partner is the one contour_order pairs it with, so contours
-    out of order still get the right start point; failing an order, the
-    Default contour at the same index.
+    """Match contours to Default: the start points and directions that make
+    ``current``'s contours match the Default contours with the same index,
+    judged by point order and type only. Contours already matching need no
+    fix; the others that can't be settled are listed with the reason. A
+    contour reversed whose start point can't be told is in both lists.
     """
-    order = contour_order(default.contours, current.contours)
-    if order is None:
-        order = range(min(len(default.contours), len(current.contours)))
-    partners = {index: default.contours[default_index]
-                for default_index, index in enumerate(order)}
     fixes, refused = [], []
     for index, contour in enumerate(current.contours):
-        wanted = partners.get(index)
-        if wanted is None:
+        if index >= len(default.contours):
             refused.append((index, f"no contour {index + 1} in the Default source"))
             continue
+        wanted = default.contours[index]
         if wanted.closed != contour.closed:
             mine, theirs = ("closed", "open") if contour.closed else ("open", "closed")
             refused.append((index, f"{mine}, the Default source's contour is {theirs}"))
             continue
         found = align(wanted, contour)
         if found is None:
-            refused.append((index, "points differ from the Default source"))
-        elif any(found):
-            fixes.append(ContourFix(index, *found))
+            refused.append((index, "points differ, see Contour order"))
+            continue
+        if found.reverse or found.start:
+            fixes.append(ContourFix(index, found.reverse, found.start or 0))
+        if found.start is None:     # direction is still fixed from the winding
+            refused.append((index, "reversed, but can't tell the start point from point types"
+                            if found.reverse else "can't tell from point types"))
+    refused += [(index, "only in the Default source")
+                for index in range(len(current.contours), len(default.contours))]
     return ContourPlan(tuple(fixes), tuple(refused))
-
-
-def _selected_by_contour(outline, selected):
-    by_contour = {}
-    for contour, point in sorted(selected):
-        if contour < len(outline.contours) and point < len(outline.contours[contour].points):
-            by_contour.setdefault(contour, []).append(point)
-    return by_contour
-
-
-def plan_start_points(outline: Outline, selected) -> ContourPlan:
-    """Start each contour with a selected point at that point.
-
-    ``selected`` holds (contour index, point index) pairs. A contour needs
-    exactly one selected on-curve point, and must be closed.
-    """
-    fixes, refused = [], []
-    for index, points in _selected_by_contour(outline, selected).items():
-        contour = outline.contours[index]
-        if len(points) > 1:
-            refused.append((index, f"select one point to start from, not {len(points)}"))
-        elif not contour.closed:
-            refused.append((index, "an open contour starts at one of its ends"))
-        elif contour.points[points[0]][0] == "offcurve":
-            refused.append((index, "the selected point is off-curve"))
-        elif points[0]:
-            fixes.append(ContourFix(index, False, points[0]))
-    return ContourPlan(tuple(fixes), tuple(refused))
-
-
-def plan_reverse(outline: Outline, selected) -> ContourPlan:
-    """Reverse each contour with a selected point."""
-    return ContourPlan(tuple(ContourFix(index, True, 0)
-                             for index in _selected_by_contour(outline, selected)))
 
 
 def _assign(wanted, found, cost):
@@ -282,11 +257,10 @@ def _contour_kinds(default, contour):
     found = align(default, contour)
     if found is None:
         return {"points"}
-    flip, rotation = found
     kinds = set()
-    if flip:
+    if found.reverse:
         kinds.add("direction")
-    if rotation:
+    if found.start != 0:
         kinds.add("start point")
     return kinds
 
@@ -410,12 +384,12 @@ class Links:
 
 
 def _partner(alignment, count, point, closed):
-    """The index of ``point``'s true partner, given align()'s (reversed, rotation).
+    """The index of ``point``'s true partner, given align()'s Alignment.
 
     Reversing a closed contour keeps its start point (see _reversed); an
     open one runs end to end.
     """
-    flip, rotation = alignment
+    flip, rotation = alignment.reverse, alignment.start
     shifted = point + rotation
     if not flip:
         return shifted % count
@@ -453,7 +427,8 @@ def links(current: Outline, other: Outline) -> Links:
         if order is not None and order[index] != index:
             good = [False] * count
         elif (aligned := align(mine, theirs)) is not None:
-            good = [_partner(aligned, count, point, theirs.closed) == point
+            good = [aligned.start is not None
+                    and _partner(aligned, count, point, theirs.closed) == point
                     for point in range(count)]
         else:
             differs = _first_type_difference(mine, theirs)

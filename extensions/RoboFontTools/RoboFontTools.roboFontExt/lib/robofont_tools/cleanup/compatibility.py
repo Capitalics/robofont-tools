@@ -170,13 +170,9 @@ class CompatibilityWindow:
         self.w.tabs = Tabs((12, 44, -12, -12), ["Points", "Contour order"],
                            callback=lambda sender: self.refresh())
         self.points, self.order = self.w.tabs[0], self.w.tabs[1]
-        self.points.setStart = Button((12, 8, 120, 24), "Set start point",
-                                      callback=self.set_start_point)
-        self.points.reverse = Button((140, 8, 130, 24), "Reverse direction",
-                                     callback=self.reverse_direction)
-        self.points.matchDefault = Button((278, 8, 110, 24), "Match Default",
+        self.points.matchDefault = Button((12, 8, 110, 24), "Match Default",
                                           callback=self.match_default)
-        self.points.result = TextBox((400, 12, -12, 20), "", sizeStyle="small")
+        self.points.result = TextBox((134, 12, -12, 20), "", sizeStyle="small")
         self.points.compareLabel = TextBox((12, 44, 92, 20), "Compare with:")
         self.points.previous = Button((104, 40, 32, 24), "◀",
                                       callback=lambda sender: self._step_comparison(-1))
@@ -191,7 +187,6 @@ class CompatibilityWindow:
         self.order.rows = _rows_view((0, 40, -0, -0), delegate=self)
         self._glyph_name = None     # the glyph drawn now
         self._source = None         # the current source drawn now
-        self._selected = frozenset()  # its selected (contour, point) pairs
         self._comparison = None       # the comparison source, kept across glyphs
         self._choices = ()            # (source, status) in the comparison popup
         self._result_glyph = None     # the glyph the result line is about
@@ -241,10 +236,8 @@ class CompatibilityWindow:
             return
         self._show(f"{name} · current source: {source.label} · "
                    f"default: {session.default.label}", glyph_follows=True)
-        self._glyph_name, self._source, self._selected = name, source, selected
+        self._glyph_name, self._source = name, source
         self.order.matchOrder.enable(True)
-        self.points.setStart.enable(bool(selected))
-        self.points.reverse.enable(bool(selected))
         self.points.matchDefault.enable(source != session.default)
         if name != self._result_glyph:
             self.order.result.set("")
@@ -262,10 +255,9 @@ class CompatibilityWindow:
         With ``glyph_follows``, the comparison popup is left for it to update."""
         self.w.status.set(status)
         self.w.openCleanup.show(ask_for_cleanup)
-        self._glyph_name, self._source, self._selected = None, None, frozenset()
+        self._glyph_name, self._source = None, None
         self.order.matchOrder.enable(False)
-        for button in (self.points.setStart, self.points.reverse, self.points.matchDefault):
-            button.enable(False)
+        self.points.matchDefault.enable(False)
         if not glyph_follows:
             self._set_choices((), None)
         self._draw_points((), None, None, frozenset())
@@ -388,16 +380,16 @@ class CompatibilityWindow:
 
     # --- fixes -------------------------------------------------------------
 
-    def _run_fix(self, name, fix, result_box, verb, unchanged):
-        """Run ``fix(session, name)``, show its result line in ``result_box``
-        and redraw."""
+    def _run_fix(self, name, fix, result_box, describe):
+        """Run ``fix(session, name)``, show ``describe(result)`` in
+        ``result_box`` and redraw."""
         from .window import loaded
         session, _designspace = loaded()
         if session is None:
             self.refresh()
             return
         try:
-            message = _fix_result(fix(session, name), verb, unchanged)
+            message = describe(fix(session, name))
         except Exception as error:
             message = f"Stopped after an error: {error}. Check the sources before saving."
             traceback.print_exc()
@@ -406,25 +398,14 @@ class CompatibilityWindow:
         self.refresh()
         print(f"RoboFont Tools / Compatibility: {name}: {message}")
 
-    def _run_points_fix(self, fix):
-        """Run a Points tab fix on the current source's glyph."""
+    def match_default(self, sender):
+        """Match contours to Default, on the current source's glyph."""
         if self._glyph_name is None:
             return
-        label, selected = self._source.label, self._selected
-        self._run_fix(self._glyph_name, lambda session, name: fix(session, label, name, selected),
-                      self.points.result, "Fixed", "Nothing to fix")
-
-    def set_start_point(self, sender):
-        self._run_points_fix(lambda session, label, name, selected:
-                             session.set_start_points(label, name, selected))
-
-    def reverse_direction(self, sender):
-        self._run_points_fix(lambda session, label, name, selected:
-                             session.reverse_contours(label, name, selected))
-
-    def match_default(self, sender):
-        self._run_points_fix(lambda session, label, name, _selected:
-                             session.match_contours_to_default(label, name))
+        label = self._source.label
+        self._run_fix(self._glyph_name,
+                      lambda session, name: session.match_contours_to_default(label, name),
+                      self.points.result, _contours_result)
 
     # --- Contour order tab -------------------------------------------------
 
@@ -435,7 +416,8 @@ class CompatibilityWindow:
 
     def _run_order_fix(self, name, fix):
         """Run a Contour order tab fix (Match order to Default or a drop)."""
-        self._run_fix(name, fix, self.order.result, "Reordered", "Nothing to reorder")
+        self._run_fix(name, fix, self.order.result,
+                      lambda result: _fix_result(result, "Reordered", "Nothing to reorder"))
 
     # Dragging a cell. The merz view passes its AppKit mouse events (NSEvent)
     # here; positions are in the merz document view, y up from the bottom,
@@ -601,6 +583,20 @@ def _fix_result(result, verb, unchanged):
     if result.refused:
         parts.append("refused " + "; ".join(f"{label} ({reason})"
                                             for label, reason in result.refused))
+    return " · ".join(parts) + "."
+
+
+def _contours_result(result):
+    """The Match Default result line: how many contours were fixed, then
+    each contour (numbered like the Contour order cells) left as it was."""
+    count = result.contours
+    parts = [f"Fixed {count} contour" + ("" if count == 1 else "s") if count
+             else "Nothing to fix"]
+    # Contour reasons are about the current source; others name their source.
+    parts += [reason if reason.startswith("contour ") else f"{label}: {reason}"
+              for label, reason in result.refused]
+    if result.saved:
+        parts.append("saved")
     return " · ".join(parts) + "."
 
 
