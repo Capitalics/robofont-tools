@@ -116,7 +116,12 @@ class CompatibilityWindow:
         self.points.note = TextBox((12, 12, -12, 40),
                                    "The Points tab comes in a later update. "
                                    "Use Contour order for now.")
-        self.order.rows = ScrollingMerzView((0, 0, -0, -0), centered=False)
+        self.order.matchOrder = Button((12, 8, 170, 24), "Match order to Default",
+                                       callback=self.match_order)
+        self.order.result = TextBox((194, 12, -12, 20), "", sizeStyle="small")
+        self.order.rows = ScrollingMerzView((0, 40, -0, -0), centered=False)
+        self._glyph_name = None     # the glyph drawn now
+        self._result_glyph = None     # the glyph the result line is about
         self.w.tabs.set(1)
         self.w.open()
 
@@ -160,15 +165,39 @@ class CompatibilityWindow:
             return
         self._show(f"{name} · current source: {source.label} · "
                    f"default: {session.default.label}")
+        self._glyph_name = name
+        self.order.matchOrder.enable(True)
+        if name != self._result_glyph:
+            self.order.result.set("")
         self._draw_order(session.glyph_outlines(name), source, session.default)
 
     def _show(self, status, ask_for_cleanup=False):
-        """Set the status line; clear the drawing unless a glyph is drawn after."""
+        """Set the status line and forget the glyph: clear the drawing and
+        disable the fix buttons, unless ``_refresh`` draws a glyph after."""
         self.w.status.set(status)
         self.w.openCleanup.show(ask_for_cleanup)
+        self._glyph_name = None
+        self.order.matchOrder.enable(False)
         self._draw_order((), None, None)
 
     # --- Contour order tab -------------------------------------------------
+
+    def match_order(self, sender):
+        from .window import loaded
+        session, _designspace = loaded()
+        name = self._glyph_name
+        if session is None or name is None:
+            return
+        try:
+            result = session.match_order_to_default(name)
+            message = _order_result(result)
+        except Exception as error:
+            message = f"Stopped after an error: {error}. Check the sources before saving."
+            traceback.print_exc()
+        self._result_glyph = name
+        self.order.result.set(message)
+        self.refresh()
+        print(f"RoboFont Tools / Compatibility: {name}: {message}")
 
     def _draw_order(self, rows, current, default):
         view = self.order.rows
@@ -244,6 +273,18 @@ class CompatibilityWindow:
                 position=(x - size / 2, y - size / 2), size=(size, size),
                 fillColor=None if kind == "offcurve" and index else colour,
                 strokeColor=colour, strokeWidth=0.75)
+
+
+def _order_result(result):
+    """One line saying what Match order to Default changed, saved and refused."""
+    parts = [("Reordered " + ", ".join(result.changed)) if result.changed
+             else "Nothing to reorder"]
+    if result.saved:
+        parts.append("saved " + ", ".join(result.saved))
+    if result.refused:
+        parts.append("refused " + "; ".join(f"{label} ({reason})"
+                                            for label, reason in result.refused))
+    return " · ".join(parts) + "."
 
 
 def _text(container, position, text, size, colour, align="left"):

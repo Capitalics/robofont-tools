@@ -13,7 +13,8 @@ from .anchors import (
     apply_edit, audit_anchors, find_differences, plan_match_default, plan_remove_all,
 )
 from .audit import Audit, SourceMarks, ufo_layers
-from .outlines import Contour, Outline, audit_outlines
+from .outlines import Contour, Outline, audit_outlines, plan_order
+
 
 
 @dataclass(frozen=True)
@@ -21,6 +22,13 @@ class FixResult:
     removed: tuple[tuple[str, str, int], ...]   # (source label, what, count)
     saved: tuple[str, ...]                      # closed sources that were saved
     no_undo: tuple[str, ...]                    # open sources changed without undo
+
+
+@dataclass(frozen=True)
+class OutlineFixResult:
+    changed: tuple[str, ...]                    # source labels whose glyph changed
+    saved: tuple[str, ...]                      # closed sources that were saved
+    refused: tuple[tuple[str, str], ...]        # (source label, reason)
 
 
 @dataclass
@@ -34,6 +42,20 @@ class _Changes:
 def _load_closed(path):
     from defcon import Font
     return Font(str(path))
+
+
+def _reorder(glyph, order):
+    """Put ``glyph``'s contours in ``order`` (old indices), keeping identifiers."""
+    from fontTools.pens.recordingPen import RecordingPointPen
+    recorded = []
+    for contour in glyph:
+        pen = RecordingPointPen()
+        contour.drawPoints(pen)
+        recorded.append(pen)
+    glyph.clearContours()
+    pen = glyph.getPointPen()
+    for index in order:
+        recorded[index].replay(pen)
 
 
 def _outline(glyph):
@@ -153,6 +175,57 @@ class CleanupSession:
 
     def _result(self, removed, changes):
         return FixResult(tuple(removed), self._save(changes), tuple(changes.no_undo))
+
+    # --- outline fixes -------------------------------------------------------
+
+    def _reorder_contours(self, changes, source, name, order, title):
+        """Reorder one source's glyph; return a refusal reason, or "" when done."""
+        layer = self._layer(source, changes.open_fonts)
+        if layer is None or name not in layer:
+            return f"no glyph {name}"
+        count = len(layer[name])
+        if sorted(order) != list(range(count)):
+            return f"the new order doesn't list each of the {count} contours once"
+        self._change_glyphs(changes, source, [name], title,
+                            lambda glyph: _reorder(glyph, order))
+        return ""
+
+    def reorder_contours(self, label, name, order):
+        """Reorder glyph ``name``'s contours in one source; ``order`` lists old indices."""
+        self._closed = {}
+        changes = _Changes(self._open_fonts())
+        source = next((source for source in self.sources if source.label == label), None)
+        if source is None:
+            raise ValueError(f"{label} is not a source")
+        refusal = self._reorder_contours(changes, source, name, order, "Reorder Contours")
+        if refusal:
+            return OutlineFixResult((), (), ((label, refusal),))
+        return OutlineFixResult((label,), self._save(changes), ())
+
+    def match_order_to_default(self, name):
+        """Reorder glyph ``name``'s contours in every source to match the Default source.
+
+        Sources without the glyph are skipped; sources whose contours can't be
+        put in the Default source's order are refused with the reason.
+        """
+        self._closed = {}
+        outlines = dict(self.glyph_outlines(name))
+        default = outlines.pop(self.default)
+        if default is None:
+            return OutlineFixResult((), (), ((self.default.label, f"no glyph {name}"),))
+        changes = _Changes(self._open_fonts())
+        changed, refused = [], []
+        for source, outline in outlines.items():
+            if outline is None:
+                continue
+            plan = plan_order(default.contours, outline.contours)
+            if plan.order is None:
+                refused.append((source.label, plan.reason))
+            elif list(plan.order) != list(range(len(plan.order))):
+                self._reorder_contours(changes, source, name, plan.order,
+                                       "Match Order to Default")
+                changed.append(source.label)
+        return OutlineFixResult(tuple(changed), self._save(changes), tuple(refused))
 
     # --- anchors ---------------------------------------------------------
 

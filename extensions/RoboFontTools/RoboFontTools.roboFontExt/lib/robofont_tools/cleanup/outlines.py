@@ -159,6 +159,23 @@ def contour_order(default: tuple[Contour, ...], contours: tuple[Contour, ...]):
     return tuple(order)
 
 
+@dataclass(frozen=True)
+class OrderPlan:
+    order: tuple[int, ...] | None   # for each default contour, the index of its match
+    reason: str = ""                # why there is no order
+
+
+def plan_order(default: tuple[Contour, ...], contours: tuple[Contour, ...]) -> OrderPlan:
+    """The contour order that makes ``contours`` match ``default``, or a refusal."""
+    if len(default) != len(contours):
+        count = f"{len(contours)} contour" + ("" if len(contours) == 1 else "s")
+        return OrderPlan(None, f"{count}, the Default source has {len(default)}")
+    order = contour_order(default, contours)
+    if order is None:
+        return OrderPlan(None, "contours differ in points from the Default source")
+    return OrderPlan(order)
+
+
 def _assign(wanted, found, cost):
     """Pair ``wanted`` with ``found`` at the lowest total cost, keeping order on ties."""
     best = list(zip(wanted, found))
