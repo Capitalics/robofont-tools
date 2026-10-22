@@ -7,3 +7,4 @@ scripts/testing/*.pdf
 tmp/
 .claude/settings.local.json
 .claude/skills/
+**/tests/
