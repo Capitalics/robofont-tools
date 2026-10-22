@@ -19,7 +19,7 @@ from .distribute_points_model import (
     even_distribution,
 )
 
-DEBUG = True
+DEBUG = False
 UNDO_TITLES = {
     "x": "Distribute Points Horizontally",
     "y": "Distribute Points Vertically",

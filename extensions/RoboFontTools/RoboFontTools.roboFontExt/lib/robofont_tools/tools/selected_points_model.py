@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from math import atan2, degrees, hypot
-
-from ..geometry import format_angle, format_number
+from ..geometry import format_angle, format_number, measure_points
 
 
 PLACEHOLDER = "—"
@@ -42,13 +40,10 @@ def presentation_for_glyph(glyph) -> SelectedPointsPresentation:
         return SelectedPointsPresentation()
 
     first, second = points
-    delta_x = float(second.x) - float(first.x)
-    delta_y = float(second.y) - float(first.y)
-    distance = hypot(delta_x, delta_y)
-    angle = degrees(atan2(delta_y, delta_x))
+    measurement = measure_points((first.x, first.y), (second.x, second.y))
     return SelectedPointsPresentation(
-        delta_x=format_number(delta_x),
-        delta_y=format_number(delta_y),
-        distance=format_number(distance),
-        angle=format_angle(angle),
+        delta_x=format_number(measurement.delta_x),
+        delta_y=format_number(measurement.delta_y),
+        distance=format_number(measurement.distance),
+        angle=format_angle(measurement.angle),
     )

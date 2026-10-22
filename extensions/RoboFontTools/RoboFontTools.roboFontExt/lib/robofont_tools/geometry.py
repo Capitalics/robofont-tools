@@ -16,23 +16,17 @@ class PointMeasurement:
     angle: float
 
 
-def order_points(point_1: Point, point_2: Point) -> tuple[Point, Point]:
-    """Order points left-to-right, then bottom-to-top for equal x values."""
-    first = (float(point_1[0]), float(point_1[1]))
-    second = (float(point_2[0]), float(point_2[1]))
-    if (second[0], second[1]) < (first[0], first[1]):
-        first, second = second, first
-    return first, second
+def measure_points(first: Point, second: Point) -> PointMeasurement:
+    """Measure from ``first`` to ``second``, in the order given.
 
-
-def measure_points(point_1: Point, point_2: Point) -> PointMeasurement:
-    """Measure two points without modifying either input."""
-    first, second = order_points(point_1, point_2)
-    vector_x = second[0] - first[0]
-    vector_y = second[1] - first[1]
+    This is the one measuring rule. Deltas are signed and the angle runs
+    from -180 to 180 degrees, so callers pass points in outline order.
+    """
+    vector_x = float(second[0]) - float(first[0])
+    vector_y = float(second[1]) - float(first[1])
     return PointMeasurement(
-        delta_x=abs(vector_x),
-        delta_y=abs(vector_y),
+        delta_x=vector_x,
+        delta_y=vector_y,
         distance=hypot(vector_x, vector_y),
         angle=degrees(atan2(vector_y, vector_x)),
     )
