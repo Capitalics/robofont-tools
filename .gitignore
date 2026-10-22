@@ -5,6 +5,20 @@
 dist/
 scripts/testing/*.pdf
 tmp/
-.claude/settings.local.json
-.claude/skills/
 **/tests/
+
+# Developer-only: AI setup
+.claude/
+AGENTS.md
+CLAUDE.md
+docs/agents/
+skills-lock.json
+
+# Developer-only: Fracturize dev scripts, fixtures, reports, prompts
+extensions/Fracturize/Fracturize/scripts/
+extensions/Fracturize/Fracturize/test_support/
+extensions/Fracturize/Fracturize/docs/*_REPORT.md
+extensions/Fracturize/Fracturize/docs/STAGE2_PHASE_*.md
+extensions/Fracturize/PROMPT_REVIEW.md
+extensions/Fracturize/Prompt *.md
+extensions/RoboFontTools_architecturereport.md
