@@ -24,3 +24,6 @@ extensions/Fracturize/Prompt *.md
 extensions/RoboFontTools_architecturereport.md
 GLOSSARY.md
 docs/adr/
+
+# Brainstorm mockups
+.superpowers/
