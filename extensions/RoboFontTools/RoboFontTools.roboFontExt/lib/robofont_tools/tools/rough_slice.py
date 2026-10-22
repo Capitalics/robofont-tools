@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from dataclasses import replace
 from math import hypot
 from pathlib import Path
 from random import Random
@@ -12,9 +13,13 @@ from mojo.events import (
     BaseEventTool, getActiveEventTool, installTool, uninstallTool,
     setActiveEventTool,
 )
-from mojo.roboFont import CurrentGlyph, RGlyph
+from mojo.roboFont import AllFonts, CurrentGlyph, RGlyph
+from mojo.subscriber import (
+    Subscriber, registerRoboFontSubscriber, unregisterRoboFontSubscriber,
+)
 
-from .rough_slice_model import SliceSettings, paired_edges
+from .base import PaletteTool
+from .rough_slice_model import SliceSettings, final_structure, paired_edges
 
 
 def _xy(point):
@@ -69,11 +74,13 @@ def _side(contour, seam, start, end):
     return 1 if total > 0 else -1 if total < 0 else 0
 
 
-def _plan(glyph, start, end, settings, seed):
+def _plan(glyph, start, end, settings, seed, forced_intervals=None):
+    """Slice ``glyph`` and return (pairs, interval count per pair)."""
     before = _seams(glyph, start, end)
     glyph.slice((start, end), canHaveComponent=False, roundValue=False)
     after = _seams(glyph, start, end)
     pairs = []
+    used_intervals = []
     rng = Random(seed)
     for key, records in after.items():
         if key in before or len(records) != 2 or records[0][0] == records[1][0]:
@@ -85,9 +92,13 @@ def _plan(glyph, start, end, settings, seed):
         if set(sides) != {-1, 1}:
             continue
         first = records[0]
-        edges = paired_edges(first[3], first[4], sides, settings, rng)
+        forced = None
+        if forced_intervals is not None and len(used_intervals) < len(forced_intervals):
+            forced = forced_intervals[len(used_intervals)]
+        edges = paired_edges(first[3], first[4], sides, settings, rng, forced)
+        used_intervals.append(len(edges[1]) - 1)
         pairs.append((records, sides, edges))
-    return pairs
+    return pairs, used_intervals
 
 
 def _apply_pairs(glyph, pairs):
@@ -113,14 +124,16 @@ def _apply_pairs(glyph, pairs):
         last_point.x, last_point.y = positions[-1]
 
 
-def rough_slice(glyph, start, end, settings, seed=None):
-    """Cut each crossed contour independently in one undoable glyph edit."""
+def plan_rough_slice(glyph, start, end, settings, seed, forced_intervals=None):
+    """Work out the cut without changing ``glyph``.
+
+    Returns (replacements, intervals): replacements is a list of
+    (contour index, new contours); intervals maps contour index to the
+    point-interval count of each seam, so a second source can match it.
+    """
     settings.validate()
-    if glyph is None or hypot(end[0]-start[0], end[1]-start[1]) < 2:
-        return 0
-    seed = seed if seed is not None else Random().getrandbits(64)
     replacements = []
-    count = 0
+    intervals = {}
     # RoboFont's slice handles one contour's two intersections at a time.
     # Isolating each contour also prevents a distant contour from changing the
     # pairing of the current contour's two seam edges.
@@ -129,15 +142,17 @@ def rough_slice(glyph, start, end, settings, seed=None):
             continue
         candidate = RGlyph()
         candidate.appendContour(contour)
-        pairs = _plan(candidate, start, end, settings, seed + index)
+        forced = (forced_intervals or {}).get(index)
+        pairs, used = _plan(candidate, start, end, settings, seed + index, forced)
         if not pairs:
             continue
         _apply_pairs(candidate, pairs)
         replacements.append((index, tuple(candidate.contours)))
-        count += len(pairs)
-    if not replacements:
-        print("Rough Slice: no clean contour crossing")
-        return 0
+        intervals[index] = used
+    return replacements, intervals
+
+
+def commit_rough_slice(glyph, replacements):
     with glyph.undo("Rough Slice"):
         for index, _contours in reversed(replacements):
             glyph.removeContour(index)
@@ -145,15 +160,85 @@ def rough_slice(glyph, start, end, settings, seed=None):
             for contour in contours:
                 glyph.appendContour(contour)
     glyph.changed()
-    return count
+
+
+def _structure(contours):
+    return [tuple(point.type for point in contour.points) for contour in contours]
+
+
+def _final_structure(glyph, replacements):
+    return final_structure(
+        _structure(glyph.contours),
+        [(index, _structure(contours)) for index, contours in replacements])
+
+
+def rough_slice(glyph, start, end, settings, seed=None):
+    """Cut each crossed contour independently in one undoable glyph edit."""
+    settings.validate()
+    if glyph is None or hypot(end[0]-start[0], end[1]-start[1]) < 2:
+        return 0
+    seed = seed if seed is not None else Random().getrandbits(64)
+    replacements, intervals = plan_rough_slice(glyph, start, end, settings, seed)
+    if not replacements:
+        print("Rough Slice: no clean contour crossing")
+        return 0
+    commit_rough_slice(glyph, replacements)
+    return sum(len(counts) for counts in intervals.values())
+
+
+def rough_slice_pair(default_glyph, other_glyph, start, end, settings, seed=None):
+    """Make the same cut in two sources, or change neither.
+
+    The default gets gap 0 (pieces touching); the other source gets
+    ``settings.gap``. Both use the same random draws and point counts, and the
+    results must have matching contour structure so they stay compatible.
+    """
+    settings.validate()
+    if hypot(end[0]-start[0], end[1]-start[1]) < 2:
+        return 0
+    if _structure(default_glyph.contours) != _structure(other_glyph.contours):
+        raise ValueError("the two sources are not compatible before the cut")
+    seed = seed if seed is not None else Random().getrandbits(64)
+    default_replacements, intervals = plan_rough_slice(
+        default_glyph, start, end, replace(settings, gap=0), seed)
+    if not default_replacements:
+        print("Rough Slice: no clean contour crossing")
+        return 0
+    other_replacements, other_intervals = plan_rough_slice(
+        other_glyph, start, end, settings, seed, forced_intervals=intervals)
+    same_contours = ([index for index, _ in default_replacements]
+                     == [index for index, _ in other_replacements])
+    if (not same_contours or intervals != other_intervals
+            or _final_structure(default_glyph, default_replacements)
+            != _final_structure(other_glyph, other_replacements)):
+        raise ValueError("the cut gives different results in the two sources; "
+                         "nothing was changed")
+    commit_rough_slice(default_glyph, default_replacements)
+    commit_rough_slice(other_glyph, other_replacements)
+    return sum(len(counts) for counts in intervals.values())
+
+
+def _font_key(font):
+    """AllFonts may return new wrappers; identify the underlying font."""
+    return id(font.naked() if hasattr(font, "naked") else font)
+
+
+def _font_label(font):
+    family = getattr(font.info, "familyName", None) or ""
+    style = getattr(font.info, "styleName", None) or ""
+    name = f"{family} {style}".strip()
+    if not name:
+        path = getattr(font, "path", None)
+        name = Path(path).stem if path else "Untitled"
+    return name
 
 
 class RoughSliceEventTool(BaseEventTool):
     title = "Rough Slice"
 
-    def __init__(self, settings_provider, active_callback=None):
+    def __init__(self, cut, active_callback=None):
         super().__init__()
-        self.settings_provider = settings_provider
+        self.cut = cut
         self.active_callback = active_callback
         self.start_point = None
         self.layer = None
@@ -210,64 +295,115 @@ class RoughSliceEventTool(BaseEventTool):
         if hypot(end[0]-start[0], end[1]-start[1]) < 2:
             print("Rough Slice: drag a line across a closed contour; a click alone does not cut")
             return
-        try:
-            count = rough_slice(CurrentGlyph(), start, end, self.settings_provider())
-            if count:
-                print(f"Rough Slice: cut {count} contour(s)")
-        except Exception:
-            print("Rough Slice: failed; outline was not changed")
-            traceback.print_exc()
+        self.cut(start, end)
 
 
-class RoughSliceTool:
+class _FontListWatcher(Subscriber):
+    """Keeps the second-source list current as fonts open and close."""
+
+    tool = None
+
+    def fontDocumentDidOpen(self, info):
+        if self.__class__.tool is not None:
+            self.__class__.tool.refresh_sources()
+
+    def fontDocumentDidClose(self, info):
+        if self.__class__.tool is not None:
+            self.__class__.tool.refresh_sources()
+
+
+NO_SECOND_SOURCE = "None (single source)"
+
+
+class RoughSliceTool(PaletteTool):
     content = """
     * TwoColumnForm @roughSliceControl
     > : Rough Slice:
     > (Activate Knife) @roughSliceButton
-    > : Spacing (u):
-    > [_25_] @roughSliceSpacing
-    > : Gap (u):
-    > [_20_] @roughSliceGap
-    > : Jitter (u):
-    > [_30_] @roughSliceJitter
+    > : Second source:
+    > (None ...) @roughSliceSecondSource
+    * HorizontalStack @roughSliceValues
+    > Spacing [_25_] @roughSliceSpacing
+    > Gap [_20_] @roughSliceGap
+    > Jitter [_30_] @roughSliceJitter
     """
-    description_data = {
-        "roughSliceControl": {"titleColumnWidth": 120, "itemColumnWidth": 142},
-        "roughSliceButton": {"callback": "_roughSliceCallback"},
-        "roughSliceSpacing": {"valueType": "number"},
-        "roughSliceGap": {"valueType": "number"},
-        "roughSliceJitter": {"valueType": "number"},
-    }
 
-    def __init__(self, render):
-        self._render = render
+    def __init__(self):
+        super().__init__()
         self._tool = None
-        self._settings_provider = None
-        self._active_callback = None
+        self._sources = []
 
-    def set_settings_provider(self, provider):
-        self._settings_provider = provider
-
-    def set_active_callback(self, callback):
-        self._active_callback = callback
-
-    def _active_changed(self, active):
-        if self._active_callback is not None:
-            self._active_callback(active)
+    def descriptions(self):
+        field = {"valueType": "number", "valueWidth": 34}
+        return {
+            "roughSliceControl": {"titleColumnWidth": 100, "itemColumnWidth": 162},
+            "roughSliceButton": {"callback": lambda sender: self.activate()},
+            "roughSliceSecondSource": {"items": [NO_SECOND_SOURCE]},
+            "roughSliceValues": {"distribution": "fill"},
+            "roughSliceSpacing": dict(field, toolTip="Point spacing along the cut (5–50 units)"),
+            "roughSliceGap": dict(field, toolTip="Gap between the pieces; 0 = touching. "
+                                                 "With a second source, the default gets 0 "
+                                                 "and the second source gets this gap."),
+            "roughSliceJitter": dict(field, toolTip="Roughness of the cut edge"),
+        }
 
     def start(self):
-        self._tool = RoughSliceEventTool(self._settings_provider, self._active_changed)
+        self._tool = RoughSliceEventTool(self.cut, self._active_changed)
         installTool(self._tool)
+        _FontListWatcher.tool = self
+        registerRoboFontSubscriber(_FontListWatcher)
+        self.refresh_sources()
 
     def stop(self):
+        _FontListWatcher.tool = None
+        unregisterRoboFontSubscriber(_FontListWatcher)
         if self._tool is not None:
             uninstallTool(self._tool)
             self._tool = None
 
     def refresh(self):
-        pass
+        self.refresh_sources()
+
+    def refresh_sources(self):
+        """Rebuild the second-source list, keeping the current choice if open."""
+        popup = self.window.getItem("roughSliceSecondSource")
+        previous = self.second_source()
+        self._sources = [font for font in AllFonts()]
+        popup.setItems([NO_SECOND_SOURCE] + [_font_label(font) for font in self._sources])
+        popup.set(0)
+        if previous is not None:
+            for position, font in enumerate(self._sources):
+                if _font_key(font) == _font_key(previous):
+                    popup.set(position + 1)
+                    break
+
+    def second_source(self):
+        if self.window is None:
+            return None
+        position = self.window.getItem("roughSliceSecondSource").get()
+        if position is None or position < 1 or position > len(self._sources):
+            return None
+        return self._sources[position - 1]
+
+    def settings(self):
+        return SliceSettings(
+            spacing=float(self.window.getItem("roughSliceSpacing").get()),
+            gap=float(self.window.getItem("roughSliceGap").get()),
+            jitter=float(self.window.getItem("roughSliceJitter").get()),
+        )
+
+    def _active_changed(self, active):
+        if self.window is None:
+            return
+        button = self.window.getItem("roughSliceButton")
+        button.getNSButton().setTitle_("Knife Active — Drag" if active else "Activate Knife")
 
     def activate(self):
+        try:
+            self.settings().validate()
+        except (ValueError, TypeError) as error:
+            print(f"Rough Slice: {error}")
+            return False
         setActiveEventTool(self._tool.__class__.__name__)
         if getActiveEventTool() is self._tool:
             self._active_changed(True)
@@ -275,3 +411,42 @@ class RoughSliceTool:
             return True
         print("Rough Slice: could not activate the knife in the current Glyph Editor")
         return False
+
+    def cut(self, start, end):
+        """Cut the current glyph, and the second source's matching glyph if one is chosen."""
+        try:
+            settings = self.settings()
+            glyph = CurrentGlyph()
+            if glyph is None:
+                return
+            other_font = self.second_source()
+            if other_font is None:
+                count = rough_slice(glyph, start, end, settings)
+            else:
+                other_glyph = self._matching_glyph(glyph, other_font)
+                if other_glyph is None:
+                    return
+                count = rough_slice_pair(glyph, other_glyph, start, end, settings)
+            if count:
+                print(f"Rough Slice: cut {count} contour(s)")
+        except ValueError as error:
+            print(f"Rough Slice: {error}")
+        except Exception:
+            print("Rough Slice: failed; outline was not changed")
+            traceback.print_exc()
+
+    @staticmethod
+    def _matching_glyph(glyph, other_font):
+        if glyph.font is not None and _font_key(glyph.font) == _font_key(other_font):
+            print("Rough Slice: the second source is the font you are drawing in; "
+                  "draw in the default source or pick another second source")
+            return None
+        layer_name = glyph.layer.name
+        if layer_name not in other_font.layerOrder:
+            print(f"Rough Slice: {_font_label(other_font)} has no layer '{layer_name}'")
+            return None
+        layer = other_font.getLayer(layer_name)
+        if glyph.name not in layer:
+            print(f"Rough Slice: {_font_label(other_font)} has no glyph '{glyph.name}'")
+            return None
+        return layer[glyph.name]

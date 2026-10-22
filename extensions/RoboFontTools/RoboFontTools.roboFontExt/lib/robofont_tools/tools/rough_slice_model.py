@@ -15,16 +15,21 @@ class SliceSettings:
     def validate(self):
         if not 5 <= self.spacing <= 50:
             raise ValueError("point spacing must be between 5 and 50 units")
-        if self.gap <= 0 or self.jitter < 0:
-            raise ValueError("gap must be positive and jitter cannot be negative")
+        if self.gap < 0 or self.jitter < 0:
+            raise ValueError("gap and jitter cannot be negative")
 
 
-def paired_edges(start, end, side_signs, settings, rng=None):
+def paired_edges(start, end, side_signs, settings, rng=None, intervals=None):
     """Return two polylines, indexed by the original contour's side of the cut.
 
     Both edges use the same tangential stations and center displacement. Their
     independent roughness only moves *away* from the center, so every pair of
-    corresponding segments stays at least ``gap`` apart.
+    corresponding segments stays at least ``gap`` apart. A gap of 0 puts both
+    edges on one shared rough line.
+
+    The random draws do not depend on the gap, so the same seed and
+    ``intervals`` give matching stations at any gap. Pass ``intervals`` to
+    force the point count (each edge gets ``intervals + 1`` points).
     """
     settings.validate()
     if set(side_signs) != {-1, 1}:
@@ -34,7 +39,7 @@ def paired_edges(start, end, side_signs, settings, rng=None):
         raise ValueError("slice is too short")
     ux, uy = (end[0] - start[0]) / length, (end[1] - start[1]) / length
     nx, ny = -uy, ux
-    intervals = max(1, round(length / settings.spacing))
+    intervals = intervals or max(1, round(length / settings.spacing))
     step = length / intervals
     rng = rng or Random()
     result = {1: [], -1: []}
@@ -48,7 +53,23 @@ def paired_edges(start, end, side_signs, settings, rng=None):
         center = rng.uniform(-settings.jitter * .65, settings.jitter * .65) if interior else 0
         for side in (-1, 1):
             outward = rng.uniform(0, settings.jitter * .35) if interior else 0
+            if settings.gap == 0:
+                outward = 0  # drawn anyway so the random sequence stays aligned
             normal = center + side * (settings.gap / 2 + outward)
             result[side].append((start[0] + ux*tangent + nx*normal,
                                  start[1] + uy*tangent + ny*normal))
+    return result
+
+
+def final_structure(original, replacements):
+    """Return the contour list a glyph will have after replacements.
+
+    ``original`` is one entry per contour. ``replacements`` is a list of
+    (contour index, new contours). Replaced contours are removed and their
+    replacements appended in index order, matching how the cut is committed.
+    """
+    replaced = {index for index, _ in replacements}
+    result = [entry for index, entry in enumerate(original) if index not in replaced]
+    for _index, contours in sorted(replacements, key=lambda item: item[0]):
+        result.extend(contours)
     return result

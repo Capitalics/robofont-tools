@@ -9,10 +9,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import traceback
-from typing import Callable
 
 from mojo.roboFont import CurrentGlyph
 
+from .base import PaletteTool
 from .distribute_points_model import (
     OFFCURVE,
     attached_offcurve_indices,
@@ -121,7 +121,7 @@ def distribute_selected_points(axis: str) -> bool:
     return True
 
 
-class DistributePointsTool:
+class DistributePointsTool(PaletteTool):
     content = """
     * TwoColumnForm @distributePointsControl
     > : Distribute:
@@ -129,33 +129,21 @@ class DistributePointsTool:
     >> (Horizontal) @distributeHorizontalButton
     >> (Vertical) @distributeVerticalButton
     """
-    description_data = {
-        "distributePointsControl": {
-            "titleColumnWidth": 70,
-            "itemColumnWidth": 192,
-        },
-        "distributePointsButtons": {"distribution": "fill"},
-        "distributeHorizontalButton": {
-            "callback": "_distributeHorizontalCallback",
-        },
-        "distributeVerticalButton": {
-            "callback": "_distributeVerticalCallback",
-        },
-    }
 
-    def __init__(self, render: Callable):
-        self._render = render
-
-    # This tool is stateless and event-free; the palette lifecycle still calls
-    # these, so they exist as explicit no-ops.
-    def start(self):
-        pass
-
-    def stop(self):
-        pass
-
-    def refresh(self):
-        pass
+    def descriptions(self):
+        return {
+            "distributePointsControl": {
+                "titleColumnWidth": 70,
+                "itemColumnWidth": 192,
+            },
+            "distributePointsButtons": {"distribution": "fill"},
+            "distributeHorizontalButton": {
+                "callback": lambda sender: self.distribute("x"),
+            },
+            "distributeVerticalButton": {
+                "callback": lambda sender: self.distribute("y"),
+            },
+        }
 
     def distribute(self, axis: str):
         try:

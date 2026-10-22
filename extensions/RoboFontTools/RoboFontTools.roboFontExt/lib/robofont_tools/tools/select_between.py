@@ -2,39 +2,35 @@
 from __future__ import annotations
 
 import traceback
-from typing import Callable
 
 from mojo.roboFont import CurrentGlyph
 
+from .base import PaletteTool
 from .select_between_model import SelectBetweenState
 
 
-class SelectBetweenTool:
+class SelectBetweenTool(PaletteTool):
     content = """
     * TwoColumnForm @selectBetweenControl
     > : Select Between:
     > (Select Points) @selectBetweenButton
     """
-    description_data = {
-        "selectBetweenControl": {
-            "titleColumnWidth": 120,
-            "itemColumnWidth": 142,
-        },
-        "selectBetweenButton": {"callback": "_selectBetweenCallback"},
-    }
 
-    def __init__(self, render: Callable):
-        self._render = render
+    def __init__(self):
+        super().__init__()
         self._state = SelectBetweenState()
 
-    def start(self):
-        pass
+    def descriptions(self):
+        return {
+            "selectBetweenControl": {
+                "titleColumnWidth": 120,
+                "itemColumnWidth": 142,
+            },
+            "selectBetweenButton": {"callback": lambda sender: self.select_between()},
+        }
 
     def stop(self):
         self._state.clear()
-
-    def refresh(self):
-        pass
 
     def select_between(self):
         try:

@@ -4,36 +4,34 @@ from __future__ import annotations
 from pathlib import Path
 import traceback
 
+from .base import PaletteTool
 from .unify_anchors_model import (
     anchor_plan, anchor_records, append_anchor, desired_anchor_names,
     load_designspace, order_anchors,
 )
 
 
-class UnifyAnchorsTool:
+class UnifyAnchorsTool(PaletteTool):
     content = """
     * TwoColumnForm @unifyAnchorsControl
     > : Anchors:
     > (Unify from Default…) @unifyAnchorsButton
     """
-    description_data = {
-        "unifyAnchorsControl": {"titleColumnWidth": 120, "itemColumnWidth": 142},
-        "unifyAnchorsButton": {"callback": "_unifyAnchorsCallback"},
-    }
 
-    def __init__(self, render):
+    def __init__(self):
+        super().__init__()
         self._window = None
 
-    def start(self):
-        pass
+    def descriptions(self):
+        return {
+            "unifyAnchorsControl": {"titleColumnWidth": 120, "itemColumnWidth": 142},
+            "unifyAnchorsButton": {"callback": lambda sender: self.open()},
+        }
 
     def stop(self):
         if self._window is not None:
             self._window.w.close()
             self._window = None
-
-    def refresh(self):
-        pass
 
     def open(self):
         if self._window is None or not self._window.w.getNSWindow().isVisible():

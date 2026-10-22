@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Callable
-
 import AppKit
 
 from mojo.subscriber import (
@@ -10,6 +8,7 @@ from mojo.subscriber import (
     unregisterGlyphEditorSubscriber,
 )
 
+from .base import PaletteTool
 from .selected_points_model import (
     presentation_for_glyph,
     selected_contour_points,
@@ -18,7 +17,7 @@ from .selected_points_state import state
 
 
 KEY = "com.boryskosmynka.robofonttools.selectedPoints"
-DEBUG = True
+DEBUG = False
 HUD_WIDTH = 220
 HUD_HEIGHT = 92
 HUD_BOTTOM_INSET = 16
@@ -237,23 +236,28 @@ class SelectedPointsSubscriber(Subscriber):
         return screen_points / self._editor_scale
 
 
-class SelectedPointsTool:
+class SelectedPointsTool(PaletteTool):
     content = """
     * TwoColumnForm @selectedPointsControl
     > : Measure Selected Points:
     > (-X) @selectedPointsEnabled
     """
-    description_data = {
-        "selectedPointsControl": {"titleColumnWidth": 210, "itemColumnWidth": 52},
-        "selectedPointsEnabled": {
-            "callback": "_selectedPointsEnabledCallback",
-            "value": state.enabled,
-        },
-    }
 
-    def __init__(self, render: Callable):
-        self._render = render
+    def __init__(self):
+        super().__init__()
         self._started = False
+
+    def descriptions(self):
+        return {
+            "selectedPointsControl": {"titleColumnWidth": 210, "itemColumnWidth": 52},
+            "selectedPointsEnabled": {
+                "callback": self._enabled_callback,
+                "value": state.enabled,
+            },
+        }
+
+    def _enabled_callback(self, sender):
+        self.set_enabled(sender.get())
 
     def start(self):
         if self._started or not state.enabled:

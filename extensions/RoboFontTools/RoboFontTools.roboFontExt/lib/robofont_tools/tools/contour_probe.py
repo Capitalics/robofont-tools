@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from time import monotonic
 import traceback
-from typing import Callable
 
 import AppKit
 
 from mojo.subscriber import Subscriber, registerGlyphEditorSubscriber, unregisterGlyphEditorSubscriber
 
 from ..geometry import format_number
+from .base import PaletteTool
 from .contour_probe_model import (
     cache_from_contours,
     measure_contour_probe,
@@ -17,7 +17,7 @@ from .contour_probe_model import (
 from .contour_probe_state import state
 
 KEY = "com.boryskosmynka.robofonttools.contourProbe"
-DEBUG = True
+DEBUG = False
 DEBUG_INTERVAL = 1.0
 
 
@@ -301,23 +301,28 @@ class ContourProbeSubscriber(Subscriber):
         return (red, green, blue, 0.96)
 
 
-class ContourProbeTool:
+class ContourProbeTool(PaletteTool):
     content = """
     * TwoColumnForm @contourProbeControl
     > : Contour Probe:
     > (-X) @contourProbeEnabled
     """
-    description_data = {
-        "contourProbeControl": {"titleColumnWidth": 210, "itemColumnWidth": 52},
-        "contourProbeEnabled": {
-            "callback": "_contourProbeEnabledCallback",
-            "value": state.enabled,
-        },
-    }
 
-    def __init__(self, render: Callable):
-        self._render = render
+    def __init__(self):
+        super().__init__()
         self._started = False
+
+    def descriptions(self):
+        return {
+            "contourProbeControl": {"titleColumnWidth": 210, "itemColumnWidth": 52},
+            "contourProbeEnabled": {
+                "callback": self._enabled_callback,
+                "value": state.enabled,
+            },
+        }
+
+    def _enabled_callback(self, sender):
+        self.set_enabled(sender.get())
 
     def start(self):
         if self._started or not state.enabled:
@@ -338,9 +343,6 @@ class ContourProbeTool:
         unregisterGlyphEditorSubscriber(ContourProbeSubscriber)
         self._started = False
         _debug("subscriber unregistered")
-
-    def refresh(self):
-        pass
 
     def is_enabled(self):
         return state.enabled
