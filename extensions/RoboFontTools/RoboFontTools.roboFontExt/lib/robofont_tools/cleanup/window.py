@@ -38,8 +38,10 @@ class CleanupWindow:
         self.default_override = None
         self.session = None
         self._rows = []
+        self._audit_lines = []
+        self._audit = None
 
-        self.w = FloatingWindow((680, 600), "Cleanup", minSize=(560, 480))
+        self.w = FloatingWindow((680, 720), "Cleanup", minSize=(560, 600))
         self.w.bind("close", self._closed)
 
         # Designspace header, shared by every section.
@@ -58,10 +60,19 @@ class CleanupWindow:
             allowsMultipleSelection=False, showColumnTitles=True,
         )
 
+        # Audit: what needs doing. Click an anchor line to select those glyphs.
+        self.w.auditTitle = TextBox((12, 178, -12, 18), "Audit")
+        self.w.audit = List(
+            (12, 198, -12, 120), [],
+            columnDescriptions=[{"title": "Status", "key": "text"}],
+            allowsMultipleSelection=False, showColumnTitles=False,
+            allowsSorting=False, selectionCallback=self._audit_selected,
+        )
+
         # Anchors section.
-        self.w.anchorsTitle = TextBox((12, 180, -12, 18), "Anchors")
+        self.w.anchorsTitle = TextBox((12, 328, -12, 18), "Anchors")
         self.w.anchorRows = List(
-            (12, 202, -12, -190), [],
+            (12, 350, -12, -190), [],
             columnDescriptions=[
                 {"title": "Glyph", "key": "glyph", "width": 140},
                 {"title": "Differences", "key": "differences"},
@@ -147,13 +158,19 @@ class CleanupWindow:
             return
         try:
             self._show_sources()
-            report = self.session.anchor_report()
+            audit, report = self.session.scan()
         except Exception as error:
             self._rows = []
+            self._audit = None
+            self._audit_lines = []
             self.w.anchorRows.set([])
+            self.w.audit.set([])
             self._report(f"Scan failed: {error}")
             traceback.print_exc()
             return
+        self._audit = audit
+        self._audit_lines = list(audit.lines())
+        self.w.audit.set([{"text": line.text} for line in self._audit_lines])
         self._rows = list(report.rows)
         self.w.anchorRows.set([{"glyph": row.glyph, "differences": row.differences}
                                for row in report.rows])
@@ -164,6 +181,18 @@ class CleanupWindow:
         lines += list(self.session.warnings)
         if sender is not None or len(lines) > 1:
             self._report("\n".join(lines))
+
+    def _audit_selected(self, sender):
+        selection = sender.getSelection()
+        if not selection or self._audit is None:
+            return
+        line = self._audit_lines[selection[0]]
+        if line.issue is None:
+            return
+        wanted = set(self._audit.anchors.glyphs[line.issue])
+        self.w.anchorRows.setSelection(
+            [index for index, row in enumerate(self._rows) if row.glyph in wanted])
+        self.w.anchorRows.scrollToSelection()
 
     def _show_sources(self):
         items = []
@@ -189,8 +218,9 @@ class CleanupWindow:
             traceback.print_exc()
             self.rescan(None)
             return
-        lines = [f"{verb}: {len(edits)} glyph edits across "
-                 f"{len({edit.source for edit in edits})} sources."]
+        source_count = len({edit.source for edit in edits})
+        lines = [f"{verb}: {len(edits)} glyph edit{'s' if len(edits) != 1 else ''} "
+                 f"across {source_count} source{'s' if source_count != 1 else ''}."]
         if saved:
             lines.append("Saved closed UFOs: " + ", ".join(saved))
         if skipped:

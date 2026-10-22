@@ -8,7 +8,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .anchors import apply_edit, find_differences, plan_match_default, plan_remove_all
+from .anchors import (
+    apply_edit, audit_anchors, find_differences, plan_match_default, plan_remove_all,
+)
+from .audit import Audit, SourceMarks, ufo_layers
 
 
 def _load_closed(path):
@@ -66,7 +69,46 @@ class CleanupSession:
             }
         self.warnings = tuple(warnings)
         default_glyphs = data.pop(self.default.label)
+        self._last_anchor_data = (default_glyphs, data)
         return default_glyphs, data
+
+    def audit(self):
+        """Read every source once and summarise what needs cleaning."""
+        default_glyphs, others = self._anchor_data()
+        open_fonts = self._open_fonts()
+        marks = []
+        for source in self.sources:
+            layer = self._layer(source, open_fonts)
+            if layer is None:
+                continue
+            guide_glyphs = glyph_guides = coloured = 0
+            for glyph in layer:
+                if glyph.guidelines:
+                    guide_glyphs += 1
+                    glyph_guides += len(glyph.guidelines)
+                if glyph.markColor is not None:
+                    coloured += 1
+            font_guides = (len(self._defcon_font(source, open_fonts).guidelines)
+                           if source.layer is None else 0)
+            marks.append(SourceMarks(source.label, guide_glyphs, glyph_guides,
+                                     font_guides, coloured))
+        layers = []
+        for path in dict.fromkeys(source.path for source in self.sources):
+            sharing = [source for source in self.sources if source.path == path]
+            full = next((source for source in sharing if source.layer is None), None)
+            label = full.label if full else Path(path).stem
+            font = self._defcon_font(sharing[0], open_fonts)
+            layers.append(ufo_layers(
+                label,
+                [(layer.name, len(layer)) for layer in font.layers],
+                font.layers.defaultLayer.name,
+                {source.layer for source in sharing if source.layer}))
+        return Audit(audit_anchors(default_glyphs, others), tuple(layers), tuple(marks))
+
+    def scan(self):
+        """Read every source once; return (audit, anchor report)."""
+        audit = self.audit()
+        return audit, find_differences(*self._last_anchor_data)
 
     def anchor_report(self):
         default_glyphs, others = self._anchor_data()

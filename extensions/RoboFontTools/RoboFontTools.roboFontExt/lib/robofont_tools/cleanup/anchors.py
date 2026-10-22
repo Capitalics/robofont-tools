@@ -64,6 +64,51 @@ def _compare(default_anchors, anchors):
     return " · ".join(parts) or "order"
 
 
+ISSUES = ("missing", "extra", "order", "duplicate")
+
+
+def issues(default_anchors, anchors):
+    """Return the set of ISSUES for one source glyph against the default."""
+    if _duplicates(anchors):
+        return {"duplicate"}
+    default_names, names = _names(default_anchors), _names(anchors)
+    if names == default_names:
+        return set()
+    found = set()
+    if any(name not in names for name in default_names):
+        found.add("missing")
+    if any(name not in default_names for name in names):
+        found.add("extra")
+    return found or {"order"}
+
+
+@dataclass(frozen=True)
+class AnchorAudit:
+    glyphs: dict      # issue -> tuple of glyph names
+    sources: dict     # issue -> {source label: glyph count}
+
+
+def audit_anchors(default_glyphs, others) -> AnchorAudit:
+    """Count glyphs per issue, overall and per source ("default" for its own duplicates)."""
+    glyphs = {issue: set() for issue in ISSUES}
+    sources = {issue: {} for issue in ISSUES}
+
+    def note(issue, glyph_name, label):
+        glyphs[issue].add(glyph_name)
+        sources[issue][label] = sources[issue].get(label, 0) + 1
+
+    for glyph_name, default_anchors in default_glyphs.items():
+        if _duplicates(default_anchors):
+            note("duplicate", glyph_name, "default")
+            continue
+        for label, source_glyphs in others.items():
+            if glyph_name in source_glyphs:
+                for issue in issues(default_anchors, source_glyphs[glyph_name]):
+                    note(issue, glyph_name, label)
+    return AnchorAudit({issue: tuple(sorted(names)) for issue, names in glyphs.items()},
+                       sources)
+
+
 def find_differences(default_glyphs, others) -> Report:
     """Compare every default glyph with the same glyph in each other source."""
     rows = []

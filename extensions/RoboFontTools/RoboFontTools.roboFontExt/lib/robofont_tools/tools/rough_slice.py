@@ -317,15 +317,23 @@ NO_SECOND_SOURCE = "None (single source)"
 
 class RoughSliceTool(PaletteTool):
     content = """
-    * TwoColumnForm @roughSliceControl
-    > : Rough Slice:
-    > (Activate Knife) @roughSliceButton
+    ---------------
+    !§ Rough Slice
+    (Activate Knife) @roughSliceButton
+    * TwoColumnForm @roughSliceForm
     > : Second source:
     > (None ...) @roughSliceSecondSource
     * HorizontalStack @roughSliceValues
-    > Spacing [_25_] @roughSliceSpacing
-    > Gap [_20_] @roughSliceGap
-    > Jitter [_30_] @roughSliceJitter
+    > * VerticalStack @roughSliceSpacingColumn
+    >> !- Spacing
+    >> [_25_] @roughSliceSpacing
+    > * VerticalStack @roughSliceGapColumn
+    >> !- Gap
+    >> [_20_] @roughSliceGap
+    > * VerticalStack @roughSliceJitterColumn
+    >> !- Jitter
+    >> [_30_] @roughSliceJitter
+    ---------------
     """
 
     def __init__(self):
@@ -334,12 +342,13 @@ class RoughSliceTool(PaletteTool):
         self._sources = []
 
     def descriptions(self):
-        field = {"valueType": "number", "valueWidth": 34}
+        field = {"valueType": "number", "width": "fill"}
         return {
-            "roughSliceControl": {"titleColumnWidth": 100, "itemColumnWidth": 162},
-            "roughSliceButton": {"callback": lambda sender: self.activate()},
+            "roughSliceButton": {"callback": lambda sender: self.activate(),
+                                 "width": "fill"},
+            "roughSliceForm": {"titleColumnWidth": 100, "itemColumnWidth": 162},
             "roughSliceSecondSource": {"items": [NO_SECOND_SOURCE]},
-            "roughSliceValues": {"distribution": "fill"},
+            "roughSliceValues": {"distribution": "fillEqually"},
             "roughSliceSpacing": dict(field, toolTip="Point spacing along the cut (5–50 units)"),
             "roughSliceGap": dict(field, toolTip="Gap between the pieces; 0 = touching. "
                                                  "With a second source, the default gets 0 "

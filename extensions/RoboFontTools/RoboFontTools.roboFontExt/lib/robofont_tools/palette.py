@@ -19,10 +19,10 @@ class RoboFontToolsPaletteController(ezui.WindowController):
             description_data.update(tool.descriptions())
         self.w = ezui.EZWindow(
             title=self.title,
-            size=(self.width, 320),
-            minSize=(280, 320),
-            maxSize=(400, 420),
-            autosaveName="com.boryskosmynka.robofonttools.palette.v2",
+            size=(self.width, "auto"),
+            minSize=(280, 200),
+            maxSize=(400, 2000),
+            autosaveName="com.boryskosmynka.robofonttools.palette.v3",
             miniaturizable=False,
             content="\n".join(tool.content for tool in self._tools),
             margins=10,

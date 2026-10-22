@@ -138,6 +138,13 @@ Default…** picks another full source. The source list shows which sources are
 open in RoboFont and which are closed. Layer-sources (`<source layer="…">`)
 are included; one whose layer is missing is skipped with a warning.
 
+**Audit.** After loading, and after every rescan or fix, the audit lists what
+needs doing: glyph counts per anchor issue (missing, extra, order only,
+duplicate names) with the sources involved, extra layers per UFO (background
+layers on their own line), glyph and font guides, and glyphs with a mark colour.
+Click an anchor line to select those glyphs in the Anchors list. Layers, guides
+and mark colours are reported only for now.
+
 **Anchors.** Every glyph in the default whose anchors differ in another source
 is listed: missing or extra anchor names, a different order, or duplicate
 names. Glyphs absent from a source are allowed in a variable font and are only
@@ -183,6 +190,7 @@ RoboFontTools.roboFontExt/
             cleanup/
                 sources.py     designspace sources, including layer-sources
                 anchors.py     anchor differences, fix plans, applying an edit
+                audit.py       the audit summary (anchors, layers, guides, colours)
                 session.py     reads and changes open and closed sources
                 window.py      the Cleanup window
 ```
