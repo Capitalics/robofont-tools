@@ -87,6 +87,29 @@ def _current_glyph():
     return (font.path if font is not None else None), glyph.layer.name, glyph.name
 
 
+def _rows_view(posSize, delegate):
+    """A scrolling merz view whose clicks reach ``delegate``, even the click
+    that brings the floating window forward from the Glyph Editor."""
+    import objc
+    from merz import ScrollingMerzView
+    from merz.views import MerzDocumentView, MerzNSView
+
+    name = "RoboFontToolsContourOrderNSView"
+    try:        # an ObjC class can be defined once per app run; reloads reuse it
+        ns_view_class = objc.lookUpClass(name)
+    except objc.nosuchclass_error:
+        ns_view_class = type(name, (MerzNSView,),
+                             {"acceptsFirstMouse_": lambda self, event: True})
+
+    class DocumentView(MerzDocumentView):
+        nsViewClass = ns_view_class
+
+    class RowsView(ScrollingMerzView):
+        merzDocumentViewClass = DocumentView
+
+    return RowsView(posSize, centered=False, delegate=delegate)
+
+
 def _colours():
     """Drawing colours for the current light or dark appearance."""
     from AppKit import NSApp
@@ -104,7 +127,6 @@ def _colours():
 
 class CompatibilityWindow:
     def __init__(self):
-        from merz import ScrollingMerzView
         from vanilla import Button, FloatingWindow, Tabs, TextBox
 
         self.w = FloatingWindow((760, 460), "Compatibility", minSize=(420, 260))
@@ -121,8 +143,7 @@ class CompatibilityWindow:
         self.order.matchOrder = Button((12, 8, 170, 24), "Match order to Default",
                                        callback=self.match_order)
         self.order.result = TextBox((194, 12, -12, 20), "", sizeStyle="small")
-        self.order.rows = ScrollingMerzView((0, 40, -0, -0), centered=False,
-                                            delegate=self)
+        self.order.rows = _rows_view((0, 40, -0, -0), delegate=self)
         self._glyph_name = None     # the glyph drawn now
         self._result_glyph = None     # the glyph the result line is about
         self._drawn = ((), None, None, 0)   # rows, current, default, height last drawn
@@ -213,6 +234,11 @@ class CompatibilityWindow:
     # here; positions are in the merz document view, y up from the bottom,
     # the same space the rows are drawn in. A drag stays in the row it
     # started in and survives redraws while the same glyph is shown.
+
+    def acceptsFirstResponder(self, sender):
+        # Without this, merz's hit test lets every click pass through the view
+        # (seen in RoboFont: dragging did nothing).
+        return True
 
     def _point(self, sender, event):
         return sender.convertWindowCoordinateToViewCoordinate(event.locationInWindow())
