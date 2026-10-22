@@ -9,17 +9,15 @@ package contains the drawing palette and portable utility scripts only.
 | `scripts/rename-font-package.py` | Rename a copy of a compiled font package | Yes |
 | `scripts/testing/compare-component-spacing.py` | Compare UFO component spacing | Yes |
 | `scripts/testing/proof-component-spacing-drawbot.py` | Draw a spacing proof PDF | Yes |
-| `extensions/RoboFontTools/tests/` | Palette development checks | No |
 | `scripts/AlignAnchors_parametric.py`, `ConstructGlyphs_Parametric.py`, `rename-anchor_new.py` | Amstelvar-specific editing scripts | No |
 | `scripts/xTools4_suggestion/` | Experimental xTools integration | No |
 | `extensions/WorkspaceLauncher.roboFontExt/` | Personal workspace setup | No |
 | `extensions/Fracturize/` | Separate, experimental extension | No |
-| `docs/` and `extensions/RoboFontTools_architecturereport.md` | Development notes | No |
+| `docs/` | Development notes | No |
 
 See [the palette guide](extensions/RoboFontTools/README.md) and
-[the script guide](scripts/README.md) for details. The tests stay in the source
-repository because they help catch regressions when the palette changes; they
-are outside the installable `.roboFontExt` bundle and are never sent to users.
+[the script guide](scripts/README.md) for details. Development tests are kept
+locally by the maintainer and are not part of this repository.
 
 ## Build a teammate package
 

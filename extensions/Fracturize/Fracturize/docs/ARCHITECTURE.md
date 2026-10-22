@@ -24,9 +24,7 @@ extension entry point → UI → controller → live project
 
 ## Development-only boundaries
 
-- `test_support/` contains synthetic in-memory fixtures and report formatting. It is deliberately outside the extension bundle.
-- `tests/fixtures/FracturizeRegression.ufo` is original synthetic regression data. Rebuild it with `scripts/build_regression_fixture.py`.
-- `scripts/` contains reproducible proof, comparison, and validation commands. Their output goes to ignored `artifacts/`.
+- Tests, synthetic fixtures (`test_support/`, `tests/fixtures/`), and proof scripts (`scripts/`) live outside the extension bundle and are kept locally by the maintainer, not in this repository.
 - `project.py` remains in the bundle only as the retained Stage 2 file-backed harness used by regression tests and proof scripts. The RoboFont extension does not use it for live project operations.
 
 ## Invariants worth preserving
