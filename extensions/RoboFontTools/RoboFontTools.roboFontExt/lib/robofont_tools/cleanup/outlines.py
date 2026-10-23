@@ -146,7 +146,9 @@ def contour_order(default: tuple[Contour, ...], contours: tuple[Contour, ...]):
 
     Contours match when their point structure lines up under some start
     point and direction; the contour's position in the glyph breaks ties
-    between contours of the same structure. None when no order lines up.
+    between contours of the same structure. A swap that position suggests
+    between closed contours stands only if fontTools' interpolation check
+    also finds one; its order is then used. None when no order lines up.
     """
     if len(default) != len(contours) or not default:
         return None if len(default) != len(contours) else ()
@@ -163,10 +165,60 @@ def contour_order(default: tuple[Contour, ...], contours: tuple[Contour, ...]):
         return (ax - bx) ** 2 + (ay - by) ** 2
 
     order = [None] * len(default)
+    by_position = False     # did position pick between same-structure contours?
     for wanted, found in groups.values():
         for i, j in _assign(wanted, found, cost):
             order[i] = j
-    return tuple(order)
+            by_position |= len(wanted) > 1 and i != j
+    order = tuple(order)
+    if not by_position or not all(c.closed for c in default + contours):
+        return order
+    # Position alone is easily fooled (a counter centred in its outer contour,
+    # bars that meet at one height), so a swap it suggests needs fontTools to
+    # agree. fontTools only compares closed contours.
+    confirmed = _fonttools_order(default, contours)
+    if confirmed is None:   # same-structure contours stay where they are
+        kept = list(order)
+        for wanted, found in groups.values():
+            if sorted(wanted) == sorted(found):
+                for i in wanted:
+                    kept[i] = i
+        return tuple(kept)
+    if all(_structure(default[i]) == _structure(contours[j]) for i, j in enumerate(confirmed)):
+        return confirmed
+    return order
+
+
+class _Drawable:
+    """Contours as a glyph fontTools can draw."""
+
+    width = 0
+
+    def __init__(self, contours):
+        self.contours = contours
+
+    def drawPoints(self, pen):
+        for contour in self.contours:
+            pen.beginPath()
+            for kind, x, y in contour.points:
+                pen.addPoint((x, y), None if kind == "offcurve" else kind)
+            pen.endPath()
+
+    def draw(self, pen):
+        from fontTools.pens.pointPen import PointToSegmentPen
+        self.drawPoints(PointToSegmentPen(pen))
+
+
+def _fonttools_order(default, contours):
+    """fontTools' contour order for ``contours`` against ``default``, or None
+    when fontTools finds the order they are in already right."""
+    from fontTools.varLib.interpolatable import test_gen
+
+    glyphsets = [{"glyph": _Drawable(default)}, {"glyph": _Drawable(contours)}]
+    for _name, problem in test_gen(glyphsets, glyphs=["glyph"], names=["default", "source"]):
+        if problem["type"] == "contour_order":
+            return tuple(problem["value_2"])
+    return None
 
 
 @dataclass(frozen=True)
