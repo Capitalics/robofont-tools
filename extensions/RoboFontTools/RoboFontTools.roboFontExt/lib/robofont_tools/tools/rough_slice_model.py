@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import hypot, ceil
+from math import hypot
 from random import Random
 
 

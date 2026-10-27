@@ -12,6 +12,7 @@ tmp/
 AGENTS.md
 CLAUDE.md
 docs/agents/
+CODING_STANDARDS.md
 skills-lock.json
 
 # Developer-only: Fracturize dev scripts, fixtures, reports, prompts
